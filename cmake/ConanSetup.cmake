@@ -1,0 +1,6 @@
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan_toolchain.cmake")
+    message(STATUS "Conan toolchain not found. Run 'conan install .' to generate it.")
+    message(STATUS "Skipping Conan integration.")
+else()
+    include("${CMAKE_BINARY_DIR}/conan_toolchain.cmake")
+endif()
