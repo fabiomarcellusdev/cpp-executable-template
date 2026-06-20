@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        compiler: [gcc, clang]
+        build_type: [Release, Debug]
+        exclude:
+          - os: macos-latest
+            compiler: gcc
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Conan
+        run: pipx install conan
+
+      - name: Configure Conan profile
+        run: conan profile detect --force
+
+      - name: Install dependencies
+        run: conan install . --build=missing -s build_type=${{ matrix.build_type }}
+
+      - name: Configure CMake
+        run: cmake --preset conan-${{ matrix.build_type == 'Release' && 'release' || 'debug' }}
+        env:
+          CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
+          CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+
+      - name: Build
+        run: cmake --build --preset conan-${{ matrix.build_type == 'Release' && 'release' || 'debug' }}
+
+      - name: Test
+        run: ctest --preset conan-${{ matrix.build_type == 'Release' && 'release' || 'debug' }} --output-on-failure

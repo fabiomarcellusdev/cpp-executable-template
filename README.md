@@ -32,12 +32,73 @@ git add -A
 git commit -m "Initial commit"
 ```
 
-After creating your project, update the following to match your project:
-- `project()` name and description in `CMakeLists.txt`
-- `name` and `version` in `conanfile.py`
-- Target names in `src/CMakeLists.txt` and `tests/CMakeLists.txt`
-- Rename `include/my_project_name/` to your project name (e.g., `include/my_app/`)
-- This `README.md`
+After creating your project, see the [Renaming Your Project](#renaming-your-project) section below for a complete walkthrough of every place the project name needs to be updated.
+
+---
+
+## Renaming Your Project
+
+This template uses `cpp_executable_template` as the project name and `my_project_name` as the include namespace. You should rename these to match your actual project. Here is every location that needs updating:
+
+### 1. Root `CMakeLists.txt`
+
+Update the `project()` declaration:
+
+```cmake
+project(
+    my_project          # was: cpp_executable_template
+    VERSION 0.1.0
+    DESCRIPTION "My project description"
+    LANGUAGES CXX
+)
+```
+
+This automatically updates the executable name, test target name (`my_project_tests`), and all references to `${PROJECT_NAME}` throughout the build system.
+
+### 2. `conanfile.py`
+
+Update the `name` field:
+
+```python
+class MyProject(ConanFile):
+    name = "my_project"          # was: cpp_executable_template
+    version = "0.1.0"
+```
+
+### 3. Include namespace directory
+
+Rename the directory inside `include/`:
+
+```bash
+mv include/my_project_name include/my_project
+```
+
+Then update all `#include` statements in your source files:
+
+```cpp
+#include <my_project/core.hpp>   // was: #include <my_project_name/core.hpp>
+```
+
+### 4. `LICENSE`
+
+Update the copyright line with your name:
+
+```
+Copyright (c) 2026 Your Name
+```
+
+### 5. `README.md`
+
+Replace the contents of this file with documentation for your project.
+
+### Summary checklist
+
+- [ ] `CMakeLists.txt` — `project()` name and description
+- [ ] `conanfile.py` — `name` field
+- [ ] `include/my_project_name/` — rename directory
+- [ ] All `#include <my_project_name/...>` statements — update namespace
+- [ ] `LICENSE` — copyright holder name
+- [ ] `README.md` — replace with your project documentation
 
 ---
 
@@ -82,9 +143,12 @@ cpp-executable-template/
 ├── CMakeLists.txt              # Root CMake configuration
 ├── conanfile.py                # Conan 2.x package manager definition
 ├── README.md                   # This file
+├── LICENSE                     # MIT license
 ├── .gitignore                  # Git ignore rules
+├── .editorconfig               # Editor-agnostic formatting rules
 ├── .clang-format               # Code formatting rules
 ├── .clang-tidy                 # Static analysis and naming convention rules
+├── .pre-commit-config.yaml     # Pre-commit hooks configuration
 │
 ├── src/                        # Application source code
 │   ├── CMakeLists.txt          # Executable target definition
@@ -103,6 +167,10 @@ cpp-executable-template/
 │   ├── ConanSetup.cmake        # Conan toolchain integration
 │   ├── LintTargets.cmake       # Formatting and linting CMake targets
 │   └── CheckPragmaOnce.cmake   # Enforces #pragma once in all headers
+│
+├── .github/                    # GitHub-specific configuration
+│   └── workflows/
+│       └── ci.yml              # GitHub Actions CI workflow
 │
 ├── scripts/                    # Build and utility scripts
 │
@@ -307,6 +375,37 @@ Defines code formatting rules applied by `clang-format`. Key settings: 4-space i
 
 Defines static analysis checks run by `clang-tidy`. Enables checks for bug-prone patterns, C++ Core Guidelines, modernization, performance, and readability. Enforces naming conventions via `readability-identifier-naming` (see the naming conventions table in the Formatting & Linting section). See the [Formatting & Linting](#formatting--linting) section for details.
 
+### `LICENSE`
+
+MIT license. Update the copyright line with your name when you create your project from this template.
+
+### `.editorconfig`
+
+Editor-agnostic formatting rules that work across IDEs and text editors. Defines charset (UTF-8), line endings (LF), indentation (4 spaces for C++/CMake, 2 spaces for YAML), trailing whitespace trimming, and final newline insertion. Complements `.clang-format` for editor-level consistency.
+
+### `.pre-commit-config.yaml`
+
+Configuration for [pre-commit](https://pre-commit.com/) hooks that run automatically before each git commit. Includes:
+- Trailing whitespace removal
+- End-of-file newline fixing
+- YAML syntax checking
+- Large file detection
+- Merge conflict detection
+- `clang-format` enforcement on C++ files
+
+To install pre-commit hooks:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Hooks will then run automatically on every commit. To run manually on all files:
+
+```bash
+pre-commit run --all-files
+```
+
 ---
 
 ## Compiler Strictness
@@ -458,12 +557,38 @@ When `ENABLE_LINTING` is enabled:
 
 ---
 
+## Continuous Integration
+
+This project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that automatically builds and tests the project on every push and pull request.
+
+**What it does:**
+- Runs on Linux (Ubuntu) and macOS
+- Tests with both GCC and Clang compilers
+- Builds in both Release and Debug configurations
+- Installs Conan dependencies
+- Configures, builds, and runs tests via CTest
+
+The workflow matrix excludes GCC on macOS since Clang is the default compiler there.
+
+**Viewing CI status:**
+After pushing to GitHub, check the Actions tab to see build status. A green checkmark indicates all configurations passed.
+
+**Customizing the workflow:**
+Edit `.github/workflows/ci.yml` to:
+- Add Windows support (requires MSVC setup)
+- Enable code coverage reporting
+- Add static analysis uploads (e.g., SonarCloud, Codecov)
+- Add deployment/release automation
+
+---
+
 ## Prerequisites
 
 - **CMake** >= 3.27
 - **Conan** >= 2.0
 - **clang-format** >= 16
 - **clang-tidy** >= 16
+- **pre-commit** (optional, for git commit hooks)
 - A C++23-capable compiler:
   - GCC >= 13
   - Clang >= 16
