@@ -7,7 +7,13 @@ project(
     LANGUAGES CXX
 )
 
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF) # Ensures strict C++23 standard
+
+# Force gtest targets to compile with the same C++23 standard
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(BUILD_GTEST ON CACHE BOOL "" FORCE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(MSVC)
