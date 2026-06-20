@@ -42,7 +42,7 @@ jobs:
       - name: Install dependencies
         run: |
           BUILD_TYPE=$(echo "${{ matrix.preset }}" | grep -q "release" && echo "Release" || echo "Debug")
-          conan install . --build=missing -s build_type=$BUILD_TYPE
+          conan install . --build=missing -s build_type=$BUILD_TYPE -s compiler.cppstd=23
 
       - name: Configure CMake
         run: cmake --preset ${{ matrix.preset }}

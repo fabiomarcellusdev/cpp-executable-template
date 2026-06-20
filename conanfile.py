@@ -8,6 +8,9 @@ class CppExecutableTemplate(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
 
+    def configure(self):
+        self.settings.compiler.cppstd = "23"
+
     def requirements(self):
         self.requires("gtest/1.14.0")
 
