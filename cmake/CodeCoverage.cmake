@@ -50,7 +50,7 @@ if(ENABLE_COVERAGE)
         add_custom_target(coverage
             COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DIR}
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
-                ${LCOV_EXECUTABLE} --capture --directory . --output-file ${COVERAGE_DIR}/coverage.info
+                ${LCOV_EXECUTABLE} --capture --directory src --directory tests --output-file ${COVERAGE_DIR}/coverage.info
                 --gcov-tool ${GCOV_EXECUTABLE}
                 --ignore-errors mismatch,format,unsupported,version,empty
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
@@ -75,7 +75,7 @@ if(ENABLE_COVERAGE)
 
         add_custom_command(TARGET coverage PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
-                ${LCOV_EXECUTABLE} --zerocounters --directory .
+                ${LCOV_EXECUTABLE} --zerocounters --directory src --directory tests
                 --gcov-tool ${GCOV_EXECUTABLE}
             COMMENT "Resetting coverage counters..."
         )
