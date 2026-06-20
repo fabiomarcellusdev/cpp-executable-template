@@ -104,6 +104,8 @@ Replace the contents of this file with documentation for your project.
 
 ## Quick Start
 
+For detailed explanations of every command, see the [Build Guide](docs/BUILD.md).
+
 ```bash
 # 1. Install dependencies via Conan
 conan install . --build=missing
@@ -115,24 +117,25 @@ cmake --preset conan-release
 cmake --build --preset conan-release
 
 # 4. Run
-./build/Release/cpp_executable_template
+./build/Release/src/cpp_executable_template
 
 # 5. Run tests
 ctest --preset conan-release
 ```
 
-### Build Output Location
+For Debug builds, coverage, sanitizers, and linting workflows, see the [Documentation](#documentation) section below.
 
-The `conanfile.py` uses Conan's `cmake_layout()`, which places all build artifacts inside a `build/` directory at the project root, organized by build configuration:
+---
 
-```
-build/
-├── Release/        # Release build artifacts (executable, object files, etc.)
-├── Debug/          # Debug build artifacts
-└── RelWithDebInfo/ # RelWithDebInfo build artifacts (if configured)
-```
+## Documentation
 
-The final executable is located at `build/<BuildType>/cpp_executable_template` (or `.exe` on Windows). The `build/` directory is gitignored and should never be committed.
+Detailed guides for each workflow:
+
+| Guide | Contents |
+|---|---|
+| [**Build Guide**](docs/BUILD.md) | Installing Conan, understanding `conan install`, CMake presets, Debug vs Release, build output structure |
+| [**Linting Guide**](docs/LINTING.md) | clang-format, clang-tidy, pre-commit hooks, naming conventions, enforcing during build, typical workflow |
+| [**Testing Guide**](docs/TESTING.md) | Running tests, adding new tests, code coverage reports, AddressSanitizer, UndefinedBehaviorSanitizer |
 
 ---
 
@@ -499,12 +502,7 @@ add_executable(${PROJECT_NAME}_tests test_main.cpp test_config.cpp)
 
 ## Formatting & Linting
 
-This project enforces code quality through **clang-format** and **clang-tidy**, integrated directly into CMake.
-
-### Configuration Files
-
-- **`.clang-format`** — Defines code formatting rules: 4-space indentation, attached braces, 100-column limit, left-aligned pointers, regrouped and sorted includes, and more.
-- **`.clang-tidy`** — Defines static analysis checks: naming conventions, modernization suggestions, bug-prone patterns, performance issues, and C++ Core Guidelines compliance.
+This project enforces code quality through **clang-format** and **clang-tidy**, integrated directly into CMake. For detailed usage, workflows, and troubleshooting, see the [Linting Guide](docs/LINTING.md).
 
 ### Naming Conventions
 
@@ -527,121 +525,41 @@ Enforced by `.clang-tidy` via `readability-identifier-naming`:
 | Type aliases | `PascalCase` | `StringMap`, `CallbackFn` |
 | Template parameters | `PascalCase` | `T`, `Allocator` |
 
-### Available CMake Targets
-
-| Target | Description |
-|---|---|
-| `format-check` | Checks formatting without modifying files (fails if any file is unformatted) |
-| `format-fix` | Auto-fixes formatting in all source and header files |
-| `lint` | Runs clang-tidy static analysis on all source files |
-| `check-headers` | Verifies all header files in `include/` contain `#pragma once` |
-
-### Usage
+### Quick Reference
 
 ```bash
 # Check formatting
-cmake --build build --target format-check
+cmake --build build/Release --target format-check
 
 # Auto-fix formatting
-cmake --build build --target format-fix
+cmake --build build/Release --target format-fix
 
 # Run linter
-cmake --build build --target lint
+cmake --build build/Release --target lint
 
 # Check headers for #pragma once
-cmake --build build --target check-headers
+cmake --build build/Release --target check-headers
 ```
-
-### Enforce During Build
-
-To make the build fail when formatting or linting issues are detected:
-
-```bash
-cmake --preset conan-release -DENABLE_LINTING=ON
-cmake --build --preset conan-release
-```
-
-When `ENABLE_LINTING` is enabled:
-- `clang-format --dry-run` runs before compilation (build fails if files are unformatted)
-- `clang-tidy` runs on every compilation unit (build fails on warnings)
-- `#pragma once` is verified for all headers before compilation
 
 ---
 
-## Code Coverage
+## Code Coverage & Sanitizers
 
-Generate HTML coverage reports showing which lines of code are exercised by your tests.
+For detailed instructions on generating code coverage reports and using AddressSanitizer/UndefinedBehaviorSanitizer, see the [Testing Guide](docs/TESTING.md).
 
-### Prerequisites
-
-- **lcov** (includes `genhtml`)
-  - Linux: `apt-get install lcov` or `dnf install lcov`
-  - macOS: `brew install lcov`
-
-### Usage
+Quick reference:
 
 ```bash
-# 1. Configure with coverage enabled (use Debug for best results)
-conan install . --build=missing -s build_type=Debug
+# Code coverage (Debug build)
 cmake --preset conan-debug -DENABLE_COVERAGE=ON
-
-# 2. Build
 cmake --build --preset conan-debug
-
-# 3. Run tests to collect coverage data
 ctest --preset conan-debug
+cmake --build build/Debug --target coverage
 
-# 4. Generate the HTML coverage report
-cmake --build build --target coverage
-```
-
-The coverage report is generated at `build/Debug/coverage/html/index.html`. Open it in a browser to view line-by-line coverage data.
-
-### What's excluded
-
-The coverage report automatically excludes:
-- System headers (`/usr/*`)
-- Test files (`*/tests/*`)
-- Build artifacts (`*/build/*`)
-- Vendored third-party code (`*/external/*`)
-
----
-
-## Sanitizers
-
-Runtime error detection tools that catch bugs invisible during normal execution. Enabled via CMake option, supported on GCC and Clang only.
-
-### Available Sanitizers
-
-| Sanitizer | What it catches |
-|---|---|
-| **AddressSanitizer (ASan)** | Buffer overflows, use-after-free, double-free, memory leaks |
-| **UndefinedBehaviorSanitizer (UBSan)** | Integer overflow, null dereference, misaligned pointers, signed overflow |
-
-### Usage
-
-```bash
-# Configure with sanitizers enabled (use Debug for best results)
-conan install . --build=missing -s build_type=Debug
+# Sanitizers (Debug build)
 cmake --preset conan-debug -DENABLE_SANITIZERS=ON
-
-# Build
 cmake --build --preset conan-debug
-
-# Run tests — sanitizers abort on first error detected
 ctest --preset conan-debug --output-on-failure
-```
-
-### Performance impact
-
-Sanitizers add ~2-3x slowdown and higher memory usage. Use only for development and testing builds, never for release.
-
-### Combining with other options
-
-Sanitizers can be combined with code coverage and linting:
-
-```bash
-cmake --preset conan-debug -DENABLE_SANITIZERS=ON -DENABLE_COVERAGE=ON -DENABLE_LINTING=ON
 ```
 
 ---
@@ -673,13 +591,18 @@ Edit `.github/workflows/ci.yml` to:
 
 ## Prerequisites
 
+### Required
+
 - **CMake** >= 3.27
-- **Conan** >= 2.0
-- **clang-format** >= 16
-- **clang-tidy** >= 16
-- **lcov** (optional, for code coverage reports)
-- **pre-commit** (optional, for git commit hooks)
+- **Conan** >= 2.0 — Install with `pip install conan`, then run `conan profile detect`
 - A C++23-capable compiler:
   - GCC >= 13
   - Clang >= 16
   - MSVC >= 19.34 (Visual Studio 2022 17.4)
+
+### Optional
+
+- **clang-format** >= 16 — Code formatting
+- **clang-tidy** >= 16 — Static analysis and linting
+- **lcov** — Code coverage reports (`apt-get install lcov` or `brew install lcov`)
+- **pre-commit** — Git commit hooks (`pip install pre-commit`)
