@@ -12,7 +12,7 @@ class CppExecutableTemplate(ConanFile):
         self.settings.compiler.cppstd = "23"
 
     def requirements(self):
-        self.requires("gtest/1.14.0")
+        self.requires("gtest/1.17.0")
 
     def generate(self):
         tc = CMakeToolchain(self)
