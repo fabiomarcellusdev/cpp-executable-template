@@ -96,15 +96,23 @@ Headers in this directory are accessible via `#include "core/app.hpp"` because `
 
 ### `lib/` — Internal Libraries
 
-Reserved for internal or vendored static libraries that are compiled as part of the project but are logically separate from the main application. This is useful when your project contains reusable components that could theoretically be extracted into their own library.
+Reserved for self-contained, reusable components that are compiled as static libraries within the project but are logically independent from the main application. Think of `lib/` as a place for mini-libraries you wrote yourself — code that has no dependency on your application's domain logic and could be extracted into its own repository or reused in a different project with little to no modification.
+
+The key distinction from `src/`: code in `src/` is application-specific (it knows about your CLI flags, your config format, your business rules), while code in `lib/` is generic and domain-agnostic.
 
 **What goes here:**
-- Self-contained utility libraries written as part of this project
-- Each library should have its own `CMakeLists.txt` and be added via `add_subdirectory()` from the root
+- Each library lives in its own subdirectory with its own `CMakeLists.txt`, and is added via `add_subdirectory()` from the root
+- Examples of good candidates for `lib/`:
+  - `lib/logger/` — a lightweight logging utility with severity levels, sinks, and formatting, usable in any C++ project
+  - `lib/thread_pool/` — a generic thread pool implementation with task submission and future-based results
+  - `lib/arg_parser/` — a command-line argument parser that knows nothing about your specific application's flags
+  - `lib/signal_slot/` — a generic observer/signal-slot mechanism for decoupled event handling
+  - `lib/crc32/` — a CRC32 checksum implementation with no external dependencies
 
 **What does NOT go here:**
-- Third-party code downloaded from the internet (use `external/` or Conan)
-- Main application source code (that belongs in `src/`)
+- Application-specific code like `config.cpp` or `app.cpp` — those belong in `src/` because they are tightly coupled to your project's domain
+- Third-party code downloaded from the internet — use `external/` for vendored code or Conan for managed dependencies
+- Header-only utilities — those belong in `include/` since they have no compiled component
 
 ---
 
