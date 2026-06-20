@@ -631,7 +631,7 @@ Edit `.github/workflows/ci.yml` to:
 ### Required
 
 - **CMake** >= 3.27
-- **Conan** >= 2.0 — Install with `pip install conan`, then run `conan profile detect`
+- **Conan** >= 2.0 — Install with `pipx install conan`, then run `conan profile detect`
 - A C++23-capable compiler:
   - GCC >= 13
   - Clang >= 16

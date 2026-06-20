@@ -10,12 +10,6 @@ Conan is the C++ package manager used to manage dependencies (currently Google T
 
 ### Installation
 
-**Using pip (recommended):**
-
-```bash
-pip install conan
-```
-
 **Using pipx (isolated installation):**
 
 ```bash
@@ -40,7 +34,7 @@ If you see `Command 'conan' not found`, ensure your Python scripts directory is 
 
 ```bash
 # Check where pip installed Conan
-pip show conan | grep Location
+pipx list
 
 # Add to PATH if needed (add to ~/.bashrc or ~/.zshrc)
 export PATH="$HOME/.local/bin:$PATH"
