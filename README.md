@@ -111,19 +111,58 @@ For detailed explanations of every command, see the [Build Guide](docs/BUILD.md)
 conan install . --build=missing
 
 # 2. Configure the project
-cmake --preset conan-release
+cmake --preset release
 
 # 3. Build
-cmake --build --preset conan-release
+cmake --build --preset release
 
 # 4. Run
-./build/Release/src/cpp_executable_template
+./build/release/src/cpp_executable_template
 
 # 5. Run tests
-ctest --preset conan-release
+ctest --preset release
 ```
 
 For Debug builds, coverage, sanitizers, and linting workflows, see the [Documentation](#documentation) section below.
+
+---
+
+## Build Presets
+
+This project uses CMake presets to simplify build configuration. All presets are defined in `CMakePresets.json` (committed to the repository). Developers can add personal overrides in `CMakeUserPresets.json` (gitignored).
+
+| Preset | Description | Use Case |
+|--------|-------------|----------|
+| `release` | Release build (optimized) | Production builds, performance testing |
+| `debug` | Debug build (with debug symbols) | Development, debugging |
+| `debug-sanitizers` | Debug + AddressSanitizer + UBSan | Memory error detection, undefined behavior checks |
+| `debug-coverage` | Debug + code coverage | Test coverage analysis |
+| `debug-full` | Debug + sanitizers + coverage + linting | Comprehensive pre-commit checks |
+| `release-strict` | Release + strict linting | CI/CD pipelines, code quality enforcement |
+
+**Example usage:**
+
+```bash
+# Build with sanitizers enabled
+cmake --preset debug-sanitizers
+cmake --build --preset debug-sanitizers
+ctest --preset debug-sanitizers
+
+# Build with coverage enabled
+cmake --preset debug-coverage
+cmake --build --preset debug-coverage
+ctest --preset debug-coverage
+cmake --build --preset debug-coverage --target coverage
+
+# Full check (sanitizers + coverage + linting)
+cmake --preset debug-full
+cmake --build --preset debug-full
+ctest --preset debug-full
+```
+
+**Note:** `CMakePresets.json` is committed to the repository and defines project-wide presets. `CMakeUserPresets.json` is gitignored and can be used for personal overrides.
+
+For detailed explanations of every command, see the [Build Guide](docs/BUILD.md).
 
 ---
 
@@ -136,6 +175,7 @@ Detailed guides for each workflow:
 | [**Build Guide**](docs/BUILD.md) | Installing Conan, understanding `conan install`, CMake presets, Debug vs Release, build output structure |
 | [**Linting Guide**](docs/LINTING.md) | clang-format, clang-tidy, pre-commit hooks, naming conventions, enforcing during build, typical workflow |
 | [**Testing Guide**](docs/TESTING.md) | Running tests, adding new tests, code coverage reports, AddressSanitizer, UndefinedBehaviorSanitizer |
+| [**Codecov Guide**](docs/CODECOV.md) | Setting up Codecov, coverage threshold enforcement, viewing coverage reports |
 
 ---
 
@@ -144,6 +184,7 @@ Detailed guides for each workflow:
 ```
 cpp-executable-template/
 ├── CMakeLists.txt              # Root CMake configuration
+├── CMakePresets.json           # Project-wide CMake presets (release, debug, etc.)
 ├── conanfile.py                # Conan 2.x package manager definition
 ├── README.md                   # This file
 ├── LICENSE                     # MIT license
@@ -172,6 +213,7 @@ cpp-executable-template/
 │   ├── LintTargets.cmake       # Formatting and linting CMake targets
 │   ├── CheckPragmaOnce.cmake   # Enforces #pragma once in all headers
 │   ├── CodeCoverage.cmake      # Code coverage reporting with lcov
+│   ├── CheckCoverageThreshold.cmake # Enforces minimum coverage percentage
 │   └── Sanitizers.cmake        # AddressSanitizer and UndefinedBehaviorSanitizer
 │
 ├── .github/                    # GitHub-specific configuration
@@ -181,6 +223,10 @@ cpp-executable-template/
 ├── scripts/                    # Build and utility scripts
 │
 ├── docs/                       # Additional project documentation
+│   ├── BUILD.md                # Build configuration guide
+│   ├── LINTING.md              # Code quality and formatting guide
+│   ├── TESTING.md              # Testing, coverage, and sanitizers guide
+│   └── CODECOV.md              # Codecov setup and integration guide
 │
 └── external/                   # Vendored third-party source code
 ```
@@ -318,6 +364,7 @@ Contains CMake helper modules, custom `Find*.cmake` scripts, and toolchain integ
 - `LintTargets.cmake` — adds `format-check`, `format-fix`, `lint`, and `check-headers` CMake targets
 - `CheckPragmaOnce.cmake` — CMake script that verifies all headers contain `#pragma once`
 - `CodeCoverage.cmake` — adds `coverage` CMake target for generating HTML coverage reports with lcov
+- `CheckCoverageThreshold.cmake` — CMake script that enforces minimum coverage percentage (default 80%)
 - `Sanitizers.cmake` — enables AddressSanitizer and UndefinedBehaviorSanitizer via `-DENABLE_SANITIZERS=ON`
 - Custom `Find<Package>.cmake` modules for dependencies not available through Conan
 - CMake utility scripts (e.g., code coverage setup, sanitizers configuration)
@@ -392,13 +439,18 @@ The root CMake configuration file. It:
 - Includes sanitizer support from `cmake/Sanitizers.cmake`
 - Enables CTest and adds `src/` and `tests/` as subdirectories
 
+### `CMakePresets.json`
+
+Defines project-wide CMake presets for common build configurations. Committed to the repository so all developers use the same presets. Developers can add personal overrides in `CMakeUserPresets.json` (gitignored). See the [Build Presets](#build-presets) section for available presets and usage.
+
 ### `conanfile.py`
 
 The Conan 2.x package definition. It:
 
 - Declares the package name and version
 - Specifies standard settings (`os`, `compiler`, `build_type`, `arch`)
-- Uses `CMakeDeps` and `CMakeToolchain` generators for seamless CMake integration
+- Uses `CMakeDeps` generator for dependency config files
+- Uses `CMakeToolchain` in `generate()` with preset generation disabled (presets are managed in `CMakePresets.json`)
 - Defines `requirements()` where you add dependencies (e.g., `self.requires("fmt/10.2.1")`)
 - Uses `cmake_layout()` for standardized build directory structure
 
@@ -533,7 +585,7 @@ add_executable(${PROJECT_NAME}_tests test_main.cpp test_config.cpp)
 ```
 
 3. Write your tests using Google Test macros (`TEST`, `EXPECT_*`, `ASSERT_*`)
-4. Run `ctest --preset conan-release`
+4. Run `ctest --preset release`
 
 ---
 
@@ -566,37 +618,40 @@ Enforced by `.clang-tidy` via `readability-identifier-naming`:
 
 ```bash
 # Check formatting
-cmake --build build/Release --target format-check
+cmake --build build/release --target format-check
 
 # Auto-fix formatting
-cmake --build build/Release --target format-fix
+cmake --build build/release --target format-fix
 
 # Run linter
-cmake --build build/Release --target lint
+cmake --build build/release --target lint
 
 # Check headers for #pragma once
-cmake --build build/Release --target check-headers
+cmake --build build/release --target check-headers
 ```
 
 ---
 
 ## Code Coverage & Sanitizers
 
-For detailed instructions on generating code coverage reports and using AddressSanitizer/UndefinedBehaviorSanitizer, see the [Testing Guide](docs/TESTING.md).
+For detailed instructions on generating code coverage reports and using AddressSanitizer/UndefinedBehaviorSanitizer, see the [Testing Guide](docs/TESTING.md) and [Codecov Guide](docs/CODECOV.md).
+
+The project enforces a **minimum 80% line coverage** threshold. The build will fail if coverage falls below this threshold.
 
 Quick reference:
 
 ```bash
 # Code coverage (Debug build)
-cmake --preset conan-debug -DENABLE_COVERAGE=ON
-cmake --build --preset conan-debug
-ctest --preset conan-debug
-cmake --build build/Debug --target coverage
+cmake --preset debug-coverage
+cmake --build --preset debug-coverage
+ctest --preset debug-coverage
+cmake --build --preset debug-coverage --target coverage
+# Fails if coverage < 80%
 
 # Sanitizers (Debug build)
-cmake --preset conan-debug -DENABLE_SANITIZERS=ON
-cmake --build --preset conan-debug
-ctest --preset conan-debug --output-on-failure
+cmake --preset debug-sanitizers
+cmake --build --preset debug-sanitizers
+ctest --preset debug-sanitizers --output-on-failure
 ```
 
 ---
@@ -608,20 +663,26 @@ This project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) tha
 **What it does:**
 - Runs on Linux (Ubuntu) and macOS
 - Tests with both GCC and Clang compilers
-- Builds in both Release and Debug configurations
+- Builds with `release-strict` preset (Release + linting enforced)
+- Builds with `debug-full` preset (Debug + sanitizers + coverage + linting)
 - Installs Conan dependencies
 - Configures, builds, and runs tests via CTest
+- Generates coverage reports and uploads to Codecov
+- **Fails if coverage falls below 80%**
 
 The workflow matrix excludes GCC on macOS since Clang is the default compiler there.
 
 **Viewing CI status:**
 After pushing to GitHub, check the Actions tab to see build status. A green checkmark indicates all configurations passed.
 
+**Viewing coverage:**
+After enabling Codecov (see [Codecov Guide](docs/CODECOV.md)), coverage reports are automatically uploaded from the `debug-full` job.
+
 **Customizing the workflow:**
 Edit `.github/workflows/ci.yml` to:
 - Add Windows support (requires MSVC setup)
-- Enable code coverage reporting
-- Add static analysis uploads (e.g., SonarCloud, Codecov)
+- Adjust coverage threshold
+- Add static analysis uploads (e.g., SonarCloud)
 - Add deployment/release automation
 
 ---

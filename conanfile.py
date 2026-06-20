@@ -6,10 +6,15 @@ class CppExecutableTemplate(ConanFile):
     name = "cpp_executable_template"
     version = "0.1.0"
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeDeps", "CMakeToolchain"
+    generators = "CMakeDeps"
 
     def requirements(self):
         self.requires("gtest/1.14.0")
+
+    def generate(self):
+        tc = CMakeToolchain(self)
+        tc.generate_presets = False
+        tc.generate()
 
     def layout(self):
         cmake_layout(self)

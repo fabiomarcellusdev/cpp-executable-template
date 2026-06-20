@@ -1,0 +1,146 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 27,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "Release",
+            "description": "Optimized release build",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/release/generators/conan_toolchain.cmake"
+            }
+        },
+        {
+            "name": "debug",
+            "displayName": "Debug",
+            "description": "Debug build with full symbols",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/debug/generators/conan_toolchain.cmake"
+            }
+        },
+        {
+            "name": "debug-sanitizers",
+            "displayName": "Debug with Sanitizers",
+            "description": "Debug build with AddressSanitizer and UndefinedBehaviorSanitizer",
+            "inherits": "debug",
+            "cacheVariables": {
+                "ENABLE_SANITIZERS": "ON"
+            }
+        },
+        {
+            "name": "debug-coverage",
+            "displayName": "Debug with Coverage",
+            "description": "Debug build with code coverage instrumentation",
+            "inherits": "debug",
+            "cacheVariables": {
+                "ENABLE_COVERAGE": "ON"
+            }
+        },
+        {
+            "name": "debug-full",
+            "displayName": "Debug Full Check",
+            "description": "Debug build with sanitizers, coverage, and linting",
+            "inherits": "debug",
+            "cacheVariables": {
+                "ENABLE_SANITIZERS": "ON",
+                "ENABLE_COVERAGE": "ON",
+                "ENABLE_LINTING": "ON"
+            }
+        },
+        {
+            "name": "release-strict",
+            "displayName": "Release with Strict Linting",
+            "description": "Release build with linting enforced during compilation",
+            "inherits": "release",
+            "cacheVariables": {
+                "ENABLE_LINTING": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "debug-sanitizers",
+            "configurePreset": "debug-sanitizers"
+        },
+        {
+            "name": "debug-coverage",
+            "configurePreset": "debug-coverage"
+        },
+        {
+            "name": "debug-full",
+            "configurePreset": "debug-full"
+        },
+        {
+            "name": "release-strict",
+            "configurePreset": "release-strict"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "release",
+            "configurePreset": "release",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "debug-sanitizers",
+            "configurePreset": "debug-sanitizers",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "debug-coverage",
+            "configurePreset": "debug-coverage",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "debug-full",
+            "configurePreset": "debug-full",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "release-strict",
+            "configurePreset": "release-strict",
+            "output": {
+                "outputOnFailure": true
+            }
+        }
+    ]
+}

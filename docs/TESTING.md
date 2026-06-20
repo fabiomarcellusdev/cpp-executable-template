@@ -11,19 +11,19 @@ This document covers running tests, generating code coverage reports, and using 
 Tests are run using CTest, which is integrated with CMake. The test executable is built as part of the normal build process.
 
 ```bash
-ctest --preset conan-release
+ctest --preset release
 ```
 
 **Real example:**
 
 ```bash
-ctest --preset conan-release
+ctest --preset release
 ```
 
 **Expected output:**
 
 ```
-Test project /path/to/build/Release
+Test project /path/to/build/release
     Start 1: SanityCheck.TrueIsTrue
 1/1 Test #1: SanityCheck.TrueIsTrue .............   Passed    0.00 sec
 
@@ -37,19 +37,19 @@ Total Test time (real) =   0.01 sec
 See detailed test output (useful when tests fail):
 
 ```bash
-ctest --preset conan-release --output-on-failure
+ctest --preset release --output-on-failure
 ```
 
 **Real example:**
 
 ```bash
-ctest --preset conan-release --output-on-failure
+ctest --preset release --output-on-failure
 ```
 
 **Expected output (on failure):**
 
 ```
-Test project /path/to/build/Release
+Test project /path/to/build/release
     Start 1: SanityCheck.TrueIsTrue
 1/1 Test #1: SanityCheck.TrueIsTrue .............***Failed    0.00 sec
 Running main() from gtest_main.cc
@@ -77,13 +77,13 @@ Expected: true
 Run only tests matching a pattern:
 
 ```bash
-ctest --preset conan-release -R "SanityCheck"
+ctest --preset release -R "SanityCheck"
 ```
 
 **Real example:**
 
 ```bash
-ctest --preset conan-release -R "SanityCheck"
+ctest --preset release -R "SanityCheck"
 ```
 
 ### Debug Build Tests
@@ -91,7 +91,7 @@ ctest --preset conan-release -R "SanityCheck"
 Run tests in Debug configuration (recommended for development):
 
 ```bash
-ctest --preset conan-debug --output-on-failure
+ctest --preset debug --output-on-failure
 ```
 
 ---
@@ -129,19 +129,19 @@ add_executable(${PROJECT_NAME}_tests test_main.cpp test_config.cpp)
 3. **Rebuild**:
 
 ```bash
-cmake --build --preset conan-release
+cmake --build --preset release
 ```
 
 4. **Run tests**:
 
 ```bash
-ctest --preset conan-release --output-on-failure
+ctest --preset release --output-on-failure
 ```
 
 **Expected output:**
 
 ```
-Test project /path/to/build/Release
+Test project /path/to/build/release
     Start 1: SanityCheck.TrueIsTrue
 1/3 Test #1: SanityCheck.TrueIsTrue .............   Passed    0.00 sec
     Start 2: ConfigTest.DefaultValues
@@ -229,14 +229,14 @@ Use Debug build for accurate line-level coverage:
 
 ```bash
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DENABLE_COVERAGE=ON
+cmake --preset debug -DENABLE_COVERAGE=ON
 ```
 
 **Real example:**
 
 ```bash
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DENABLE_COVERAGE=ON
+cmake --preset debug -DENABLE_COVERAGE=ON
 ```
 
 **Expected output:**
@@ -250,25 +250,25 @@ cmake --preset conan-debug -DENABLE_COVERAGE=ON
 **Step 2: Build**
 
 ```bash
-cmake --build --preset conan-debug
+cmake --build --preset debug
 ```
 
 **Step 3: Run tests**
 
 ```bash
-ctest --preset conan-debug
+ctest --preset debug
 ```
 
 **Step 4: Generate the HTML coverage report**
 
 ```bash
-cmake --build build/Debug --target coverage
+cmake --build build/debug --target coverage
 ```
 
 **Real example:**
 
 ```bash
-cmake --build build/Debug --target coverage
+cmake --build build/debug --target coverage
 ```
 
 **Expected output:**
@@ -283,17 +283,17 @@ Using 4 file(s)
 Overall coverage rate:
   lines......: 85.7% (42 of 49 lines)
   functions..: 100.0% (8 of 8 functions)
-Coverage report generated at: /path/to/build/Debug/coverage/html/index.html
+Coverage report generated at: /path/to/build/debug/coverage/html/index.html
 ```
 
 **Step 5: Open the report**
 
 ```bash
 # Linux
-xdg-open build/Debug/coverage/html/index.html
+xdg-open build/debug/coverage/html/index.html
 
 # macOS
-open build/Debug/coverage/html/index.html
+open build/debug/coverage/html/index.html
 ```
 
 The HTML report shows:
@@ -312,24 +312,83 @@ The coverage report automatically excludes:
 | `*/build/*` | Build artifacts |
 | `*/external/*` | Vendored third-party code |
 
+### Coverage Threshold
+
+The project enforces a **minimum 80% line coverage** threshold. When you run the coverage target, it will:
+
+1. Generate the coverage report
+2. Parse the coverage percentage
+3. **Fail if coverage is below 80%**
+
+**Example (coverage passes):**
+
+```bash
+cmake --build build/debug --target coverage
+```
+
+**Expected output:**
+
+```
+[1/1] Generating code coverage report...
+...
+Overall coverage rate:
+  lines......: 85.7% (42 of 49 lines)
+  functions..: 100.0% (8 of 8 functions)
+Coverage report generated at: /path/to/build/debug/coverage/html/index.html
+-- Coverage: 42/49 lines (85%)
+-- Threshold: 80%
+-- Coverage check passed: 85% >= 80%
+```
+
+**Example (coverage fails):**
+
+```bash
+cmake --build build/debug --target coverage
+```
+
+**Expected output:**
+
+```
+[1/1] Generating code coverage report...
+...
+Overall coverage rate:
+  lines......: 65.3% (32 of 49 lines)
+  functions..: 75.0% (6 of 8 functions)
+Coverage report generated at: /path/to/build/debug/coverage/html/index.html
+-- Coverage: 32/49 lines (65%)
+-- Threshold: 80%
+CMake Error: Code coverage 65% is below the required threshold of 80%. Please add more tests to increase coverage.
+```
+
+**Changing the threshold:**
+
+```bash
+# Set threshold to 90%
+cmake --preset debug -DENABLE_COVERAGE=ON -DCOVERAGE_THRESHOLD=90
+```
+
+Or modify `CMakePresets.json` to set it permanently for a preset.
+
+For Codecov integration and viewing coverage trends, see [Codecov Guide](CODECOV.md).
+
 ### Typical Workflow
 
 ```bash
 # 1. Configure with coverage
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DENABLE_COVERAGE=ON
+cmake --preset debug -DENABLE_COVERAGE=ON
 
 # 2. Build
-cmake --build --preset conan-debug
+cmake --build --preset debug
 
 # 3. Run tests
-ctest --preset conan-debug
+ctest --preset debug
 
 # 4. Generate report
-cmake --build build/Debug --target coverage
+cmake --build build/debug --target coverage
 
 # 5. View report
-open build/Debug/coverage/html/index.html
+open build/debug/coverage/html/index.html
 ```
 
 ---
@@ -361,14 +420,14 @@ Use Debug build for best error reports:
 
 ```bash
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DENABLE_SANITIZERS=ON
+cmake --preset debug -DENABLE_SANITIZERS=ON
 ```
 
 **Real example:**
 
 ```bash
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DENABLE_SANITIZERS=ON
+cmake --preset debug -DENABLE_SANITIZERS=ON
 ```
 
 **Expected output:**
@@ -382,13 +441,13 @@ cmake --preset conan-debug -DENABLE_SANITIZERS=ON
 **Step 2: Build**
 
 ```bash
-cmake --build --preset conan-debug
+cmake --build --preset debug
 ```
 
 **Step 3: Run tests**
 
 ```bash
-ctest --preset conan-debug --output-on-failure
+ctest --preset debug --output-on-failure
 ```
 
 ### Example: Catching a Buffer Overflow
@@ -405,7 +464,7 @@ void process_data() {
 Without sanitizers, this might "work" (undefined behavior). With ASan:
 
 ```bash
-ctest --preset conan-debug --output-on-failure
+ctest --preset debug --output-on-failure
 ```
 
 **Expected output:**
@@ -454,7 +513,7 @@ With UBSan:
 Sanitizers can be combined with code coverage and linting:
 
 ```bash
-cmake --preset conan-debug \
+cmake --preset debug \
     -DENABLE_SANITIZERS=ON \
     -DENABLE_COVERAGE=ON \
     -DENABLE_LINTING=ON
@@ -464,10 +523,10 @@ cmake --preset conan-debug \
 
 ```bash
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DENABLE_SANITIZERS=ON -DENABLE_COVERAGE=ON
-cmake --build --preset conan-debug
-ctest --preset conan-debug --output-on-failure
-cmake --build build/Debug --target coverage
+cmake --preset debug -DENABLE_SANITIZERS=ON -DENABLE_COVERAGE=ON
+cmake --build --preset debug
+ctest --preset debug --output-on-failure
+cmake --build build/debug --target coverage
 ```
 
 This gives you:
@@ -482,13 +541,13 @@ All in one build.
 ```bash
 # 1. Configure with sanitizers
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DENABLE_SANITIZERS=ON
+cmake --preset debug -DENABLE_SANITIZERS=ON
 
 # 2. Build
-cmake --build --preset conan-debug
+cmake --build --preset debug
 
 # 3. Run tests (sanitizers abort on first error)
-ctest --preset conan-debug --output-on-failure
+ctest --preset debug --output-on-failure
 
 # 4. Fix any issues reported by sanitizers
 # 5. Re-run until all tests pass cleanly
@@ -503,13 +562,13 @@ ctest --preset conan-debug --output-on-failure
 ```bash
 # Configure Debug build (once)
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug
+cmake --preset debug
 
 # Build
-cmake --build --preset conan-debug
+cmake --build --preset debug
 
 # Run tests
-ctest --preset conan-debug --output-on-failure
+ctest --preset debug --output-on-failure
 ```
 
 ### Before Merging
@@ -517,16 +576,16 @@ ctest --preset conan-debug --output-on-failure
 ```bash
 # Full check: lint + build + test + coverage + sanitizers
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DENABLE_SANITIZERS=ON -DENABLE_COVERAGE=ON -DENABLE_LINTING=ON
-cmake --build --preset conan-debug
-ctest --preset conan-debug --output-on-failure
-cmake --build build/Debug --target coverage
+cmake --preset debug -DENABLE_SANITIZERS=ON -DENABLE_COVERAGE=ON -DENABLE_LINTING=ON
+cmake --build --preset debug
+ctest --preset debug --output-on-failure
+cmake --build build/debug --target coverage
 
 # Also verify Release build works
 conan install . --build=missing
-cmake --preset conan-release
-cmake --build --preset conan-release
-ctest --preset conan-release --output-on-failure
+cmake --preset release
+cmake --build --preset release
+ctest --preset release --output-on-failure
 ```
 
 ### CI/CD Pipeline
@@ -534,15 +593,15 @@ ctest --preset conan-release --output-on-failure
 ```bash
 # Debug with sanitizers
 conan install . --build=missing -s build_type=Debug
-cmake --preset conan-debug -DENABLE_SANITIZERS=ON -DENABLE_LINTING=ON
-cmake --build --preset conan-debug
-ctest --preset conan-debug --output-on-failure
+cmake --preset debug -DENABLE_SANITIZERS=ON -DENABLE_LINTING=ON
+cmake --build --preset debug
+ctest --preset debug --output-on-failure
 
 # Release
 conan install . --build=missing
-cmake --preset conan-release
-cmake --build --preset conan-release
-ctest --preset conan-release --output-on-failure
+cmake --preset release
+cmake --build --preset release
+ctest --preset release --output-on-failure
 ```
 
 ---
@@ -571,10 +630,10 @@ brew install lcov
 
 ```bash
 # Run tests first to collect coverage data
-ctest --preset conan-debug
+ctest --preset debug
 
 # Then generate report
-cmake --build build/Debug --target coverage
+cmake --build build/debug --target coverage
 ```
 
 ### "Sanitizer error: ASan runtime does not come first"
@@ -588,7 +647,7 @@ cmake --build build/Debug --target coverage
 export LD_PRELOAD=$(clang -print-file-name=libclang_rt.asan-x86_64.so)
 
 # Then run tests
-ctest --preset conan-debug --output-on-failure
+ctest --preset debug --output-on-failure
 ```
 
 ### "Sanitizers not supported on MSVC"
@@ -603,12 +662,12 @@ ctest --preset conan-debug --output-on-failure
 
 | Task | Command |
 |---|---|
-| Run tests | `ctest --preset conan-release` |
-| Run tests (verbose) | `ctest --preset conan-release --output-on-failure` |
-| Enable coverage | `cmake --preset conan-debug -DENABLE_COVERAGE=ON` |
-| Generate coverage report | `cmake --build build/Debug --target coverage` |
-| Enable sanitizers | `cmake --preset conan-debug -DENABLE_SANITIZERS=ON` |
-| Combine all | `cmake --preset conan-debug -DENABLE_COVERAGE=ON -DENABLE_SANITIZERS=ON -DENABLE_LINTING=ON` |
+| Run tests | `ctest --preset release` |
+| Run tests (verbose) | `ctest --preset release --output-on-failure` |
+| Enable coverage | `cmake --preset debug -DENABLE_COVERAGE=ON` |
+| Generate coverage report | `cmake --build build/debug --target coverage` |
+| Enable sanitizers | `cmake --preset debug -DENABLE_SANITIZERS=ON` |
+| Combine all | `cmake --preset debug -DENABLE_COVERAGE=ON -DENABLE_SANITIZERS=ON -DENABLE_LINTING=ON` |
 
 For build configuration details, see [Build Guide](BUILD.md).
 For linting and formatting, see [Linting Guide](LINTING.md).

@@ -77,7 +77,6 @@ The `.` tells Conan to look in the current directory for `conanfile.py`. Conan t
 2. **Downloads packages** from Conan Center (https://conan.io/center/)
 3. **Generates CMake integration files** in the build directory:
    - `conan_toolchain.cmake` — tells CMake where to find dependencies and their headers/libraries
-   - `CMakePresets.json` — defines `conan-release` and `conan-debug` presets that CMake can use
    - Package config files (e.g., `GTestConfig.cmake`) for each dependency
 
 **`--build=missing`**
@@ -114,7 +113,7 @@ conan install . --build=missing -s build_type=Debug
 The `-s build_type=Debug` flag tells Conan to:
 - Use Debug compiler flags (`-g -O0` instead of `-O2 -DNDEBUG`)
 - Download/build Debug versions of dependencies
-- Generate `conan-debug` preset instead of `conan-release`
+- Generate `debug` preset instead of `release`
 
 ### Real Example
 
@@ -141,7 +140,6 @@ gtest/1.14.0: Already installed!
 ======== Generating toolchain files ========
 CMakeToolchain generated: conan_toolchain.cmake
 CMakeDeps generated: GTestConfig.cmake
-CMakePresets generated: CMakePresets.json
 ```
 
 ---
@@ -156,34 +154,50 @@ CMake presets are predefined configuration sets that specify:
 - Compiler settings
 - CMake cache variables
 
-Conan generates presets automatically when you run `conan install`.
+This project defines presets in `CMakePresets.json` (committed to the repository). Developers can add personal overrides in `CMakeUserPresets.json` (gitignored).
 
 ### Available Presets
 
-After running `conan install . --build=missing`, two presets are available:
+The following presets are defined in `CMakePresets.json`:
 
-**`conan-release`**
-- Build directory: `build/Release`
+**`release`**
+- Build directory: `build/release`
 - Build type: `Release` (optimizations enabled, debug symbols stripped)
 - Compiler flags: `-O2 -DNDEBUG`
 
-**`conan-debug`**
-- Build directory: `build/Debug`
+**`debug`**
+- Build directory: `build/debug`
 - Build type: `Debug` (no optimizations, full debug symbols)
 - Compiler flags: `-g -O0`
+
+**`debug-sanitizers`**
+- Inherits from: `debug`
+- Enables: AddressSanitizer + UndefinedBehaviorSanitizer
+
+**`debug-coverage`**
+- Inherits from: `debug`
+- Enables: Code coverage instrumentation
+
+**`debug-full`**
+- Inherits from: `debug`
+- Enables: Sanitizers + coverage + linting
+
+**`release-strict`**
+- Inherits from: `release`
+- Enables: Linting enforced during build
 
 ### Using Presets
 
 **Configure with a preset:**
 
 ```bash
-cmake --preset conan-release
+cmake --preset release
 ```
 
 This is equivalent to:
 
 ```bash
-cmake -B build/Release \
+cmake -B build/release \
       -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake \
       -DCMAKE_BUILD_TYPE=Release
 ```
@@ -191,24 +205,24 @@ cmake -B build/Release \
 **Build with a preset:**
 
 ```bash
-cmake --build --preset conan-release
+cmake --build --preset release
 ```
 
-This builds everything in `build/Release`.
+This builds everything in `build/release`.
 
 **Run tests with a preset:**
 
 ```bash
-ctest --preset conan-release
+ctest --preset release
 ```
 
-This runs tests from the `build/Release` directory.
+This runs tests from the `build/release` directory.
 
 ### Real Example
 
 ```bash
 # Configure Release build
-cmake --preset conan-release
+cmake --preset release
 
 # Expected output:
 # Preset CMake variables:
@@ -216,10 +230,10 @@ cmake --preset conan-release
 #   CMAKE_TOOLCHAIN_FILE=/path/to/conan_toolchain.cmake
 # -- Configuring done
 # -- Generating done
-# -- Build files have been written to: /path/to/build/Release
+# -- Build files have been written to: /path/to/build/release
 
 # Build
-cmake --build --preset conan-release
+cmake --build --preset release
 
 # Expected output:
 # [1/3] Building CXX object src/CMakeFiles/cpp_executable_template.dir/main.cpp.o
@@ -227,13 +241,85 @@ cmake --build --preset conan-release
 # [3/3] Built target cpp_executable_template
 ```
 
+### Custom Presets (CMakePresets.json)
+
+The following custom presets are defined in `CMakePresets.json` for common development workflows:
+
+| Preset | Description | Enabled Features |
+|--------|-------------|------------------|
+| `debug-sanitizers` | Debug build with sanitizers | AddressSanitizer, UndefinedBehaviorSanitizer |
+| `debug-coverage` | Debug build with coverage | Code coverage instrumentation |
+| `debug-full` | Comprehensive debug build | Sanitizers + coverage + linting |
+| `release-strict` | Release with strict linting | Linting enforced during build |
+
+These presets inherit from `debug` or `release` and add specific CMake options.
+
+**Why CMakePresets.json and CMakeUserPresets.json?**
+
+- `CMakePresets.json` is committed to the repository and defines project-wide presets that all developers use
+- `CMakeUserPresets.json` is gitignored and can be used for personal overrides or experimental configurations
+- Conan's preset generation is disabled (see `conanfile.py`) to avoid overwriting the committed presets
+
+**Using custom presets:**
+
+```bash
+# Build with sanitizers (catches memory errors and undefined behavior)
+cmake --preset debug-sanitizers
+cmake --build --preset debug-sanitizers
+ctest --preset debug-sanitizers
+
+# Real example output:
+# -- Sanitizers enabled (AddressSanitizer + UndefinedBehaviorSanitizer)
+# -- Configuring done
+# -- Generating done
+```
+
+```bash
+# Build with coverage (generates HTML coverage report)
+cmake --preset debug-coverage
+cmake --build --preset debug-coverage
+ctest --preset debug-coverage
+cmake --build --preset debug-coverage --target coverage
+
+# Real example output:
+# -- Code coverage enabled
+# -- Configuring done
+# -- Generating done
+# [100%] Generating code coverage report...
+# Coverage report generated at: build/coverage/html/index.html
+```
+
+```bash
+# Full check (sanitizers + coverage + linting)
+cmake --preset debug-full
+cmake --build --preset debug-full
+ctest --preset debug-full
+
+# Real example output:
+# -- Sanitizers enabled (AddressSanitizer + UndefinedBehaviorSanitizer)
+# -- Code coverage enabled
+# -- Configuring done
+# -- Generating done
+# [ 50%] Checking code formatting...
+# [100%] Built target cpp_executable_template
+```
+
+**When to use each preset:**
+
+- **`release`**: Production builds, performance testing, deployment
+- **`debug`**: Daily development, debugging, running tests
+- **`debug-sanitizers`**: Before merging code, catching memory bugs, CI pipelines
+- **`debug-coverage`**: Analyzing test coverage, finding untested code paths
+- **`debug-full`**: Pre-commit checks, ensuring code quality before pushing
+- **`release-strict`**: CI/CD pipelines, enforcing code standards in production builds
+
 ---
 
 ## Build Configurations
 
 ### Release vs Debug
 
-**Release (`conan-release`)**
+**Release (`release`)**
 - **Use when:** Building for production, performance testing, deployment
 - **Optimizations:** Enabled (`-O2`)
 - **Debug symbols:** Stripped
@@ -241,7 +327,7 @@ cmake --build --preset conan-release
 - **Binary size:** Smaller
 - **Performance:** Faster
 
-**Debug (`conan-debug`)**
+**Debug (`debug`)**
 - **Use when:** Development, debugging, testing, code coverage, sanitizers
 - **Optimizations:** Disabled (`-O0`)
 - **Debug symbols:** Full (`-g`)
@@ -266,20 +352,16 @@ cmake --build --preset conan-release
 You can configure both Release and Debug builds side-by-side:
 
 ```bash
-# Install dependencies for both
-conan install . --build=missing
-conan install . --build=missing -s build_type=Debug
-
 # Configure both
-cmake --preset conan-release
-cmake --preset conan-debug
+cmake --preset release
+cmake --preset debug
 
 # Build either
-cmake --build --preset conan-release
-cmake --build --preset conan-debug
+cmake --build --preset release
+cmake --build --preset debug
 ```
 
-Each configuration lives in its own directory (`build/Release` and `build/Debug`), so they don't interfere with each other.
+Each configuration lives in its own directory (`build/release` and `build/debug`), so they don't interfere with each other.
 
 ---
 
@@ -291,7 +373,7 @@ The `conanfile.py` uses Conan's `cmake_layout()`, which organizes build artifact
 
 ```
 build/
-├── Release/                    # Release build artifacts
+├── release/                    # Release build artifacts
 │   ├── src/
 │   │   └── cpp_executable_template    # The executable
 │   ├── tests/
@@ -300,7 +382,7 @@ build/
 │   ├── compile_commands.json   # For clangd/clang-tidy
 │   └── ...
 │
-└── Debug/                      # Debug build artifacts
+└── debug/                      # Debug build artifacts
     ├── src/
     │   └── cpp_executable_template
     ├── tests/
@@ -319,18 +401,18 @@ build/
 - Used by `clangd` (language server) for IDE integration
 
 **Executable location**
-- Release: `build/Release/src/cpp_executable_template`
-- Debug: `build/Debug/src/cpp_executable_template`
+- Release: `build/release/src/cpp_executable_template`
+- Debug: `build/debug/src/cpp_executable_template`
 - On Windows: `.exe` extension is added automatically
 
 ### Running the Executable
 
 ```bash
 # Release
-./build/Release/src/cpp_executable_template
+./build/release/src/cpp_executable_template
 
 # Debug
-./build/Debug/src/cpp_executable_template
+./build/debug/src/cpp_executable_template
 ```
 
 ---
@@ -355,19 +437,19 @@ conan install . --build=missing
 **Step 3: Configure the project**
 
 ```bash
-cmake --preset conan-release
+cmake --preset release
 ```
 
 **Step 4: Build**
 
 ```bash
-cmake --build --preset conan-release
+cmake --build --preset release
 ```
 
 **Step 5: Run the executable**
 
 ```bash
-./build/Release/src/cpp_executable_template
+./build/release/src/cpp_executable_template
 ```
 
 **Expected output:**
@@ -383,13 +465,13 @@ Hello, World!
 conan install . --build=missing -s build_type=Debug
 
 # Configure
-cmake --preset conan-debug
+cmake --preset debug
 
 # Build
-cmake --build --preset conan-debug
+cmake --build --preset debug
 
 # Run (with debug symbols for gdb/lldb)
-gdb ./build/Debug/src/cpp_executable_template
+gdb ./build/debug/src/cpp_executable_template
 ```
 
 ---
@@ -415,10 +497,10 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ```bash
 conan install . --build=missing
-cmake --preset conan-release
+cmake --preset release
 ```
 
-### "Preset 'conan-release' not found"
+### "Preset 'release' not found"
 
 **Cause:** Conan did not generate `CMakePresets.json`.
 
@@ -451,12 +533,12 @@ conan install . --build=missing                       # for Release
 | Command | Purpose |
 |---|---|
 | `conan install . --build=missing` | Install dependencies and generate CMake integration files |
-| `cmake --preset conan-release` | Configure Release build |
-| `cmake --preset conan-debug` | Configure Debug build |
-| `cmake --build --preset conan-release` | Build Release configuration |
-| `cmake --build --preset conan-debug` | Build Debug configuration |
-| `ctest --preset conan-release` | Run tests (Release) |
-| `ctest --preset conan-debug` | Run tests (Debug) |
+| `cmake --preset release` | Configure Release build |
+| `cmake --preset debug` | Configure Debug build |
+| `cmake --build --preset release` | Build Release configuration |
+| `cmake --build --preset debug` | Build Debug configuration |
+| `ctest --preset release` | Run tests (Release) |
+| `ctest --preset debug` | Run tests (Debug) |
 
 For linting, testing, coverage, and sanitizers, see:
 - [Linting Guide](LINTING.md)

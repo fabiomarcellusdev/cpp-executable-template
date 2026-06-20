@@ -1,4 +1,5 @@
 option(ENABLE_COVERAGE "Enable code coverage reporting" OFF)
+set(COVERAGE_THRESHOLD 80 CACHE STRING "Minimum code coverage percentage (0-100)")
 
 if(ENABLE_COVERAGE)
     if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -7,7 +8,7 @@ if(ENABLE_COVERAGE)
         return()
     endif()
 
-    message(STATUS "Code coverage enabled")
+    message(STATUS "Code coverage enabled (threshold: ${COVERAGE_THRESHOLD}%)")
 
     add_compile_options(--coverage)
     add_link_options(--coverage)
@@ -34,6 +35,10 @@ if(ENABLE_COVERAGE)
                 --title "${PROJECT_NAME} Code Coverage"
                 --legend --show-details
             COMMAND ${CMAKE_COMMAND} -E echo "Coverage report generated at: ${COVERAGE_DIR}/html/index.html"
+            COMMAND ${CMAKE_COMMAND}
+                -DCOVERAGE_FILE=${COVERAGE_DIR}/coverage_filtered.info
+                -DCOVERAGE_THRESHOLD=${COVERAGE_THRESHOLD}
+                -P ${CMAKE_SOURCE_DIR}/cmake/CheckCoverageThreshold.cmake
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             COMMENT "Generating code coverage report..."
         )
