@@ -37,12 +37,15 @@ jobs:
         run: brew install lcov
 
       - name: Configure Conan profile
-        run: conan profile detect --force
+        run: |
+          conan profile detect --force
+          # Set C++23 as default for both host and build profiles
+          conan profile update compiler.cppstd=23
 
       - name: Install dependencies
         run: |
           BUILD_TYPE=$(echo "${{ matrix.preset }}" | grep -q "release" && echo "Release" || echo "Debug")
-          conan install . --build=missing -s build_type=$BUILD_TYPE -s compiler.cppstd=23
+          conan install . --build=missing -s build_type=$BUILD_TYPE -s compiler.cppstd=23 -s:b compiler.cppstd=23
 
       - name: Configure CMake
         run: cmake --preset ${{ matrix.preset }}
