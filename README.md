@@ -88,6 +88,7 @@ cpp-executable-template/
 │   └── main.cpp                # Entry point
 │
 ├── include/                    # Project header files
+│   └── my_project_name/        # Namespace directory for clean include paths
 │
 ├── lib/                        # Internal / vendored static libraries
 │
@@ -131,15 +132,25 @@ The `src/CMakeLists.txt` defines the executable target, sets include paths to `i
 
 Contains all project header files (`.hpp`, `.h`). Separating headers from source files keeps include paths clean and makes it straightforward to expose a public API if the project ever evolves into a library.
 
+All headers live inside a **project-named subdirectory** (currently `my_project_name/`). This enforces namespaced include paths throughout the codebase, preventing header name collisions with third-party libraries and making it immediately clear which headers belong to your project.
+
 **What goes here:**
-- All `.hpp` and `.h` files that declare interfaces used across translation units
-- Headers organized in subdirectories that mirror the source layout (e.g., `include/core/app.hpp`)
+- All `.hpp` and `.h` files inside `include/my_project_name/` (e.g., `include/my_project_name/core.hpp`, `include/my_project_name/config.hpp`)
+- Subdirectories within `my_project_name/` for organizing by module (e.g., `include/my_project_name/io/parser.hpp`)
 
 **What does NOT go here:**
 - Implementation files (`.cpp` — those belong in `src/`)
 - Third-party headers (those belong in `external/` or are managed by Conan)
+- Headers placed directly in `include/` without the namespace subdirectory
 
-Headers in this directory are accessible via `#include "core/app.hpp"` because `src/CMakeLists.txt` adds `include/` to the target's include path.
+Because `src/CMakeLists.txt` adds `include/` to the target's include path, headers are included with the project namespace:
+
+```cpp
+#include <my_project_name/core.hpp>
+#include <my_project_name/io/parser.hpp>
+```
+
+When starting your own project, rename `my_project_name/` to match your project name (e.g., `include/my_app/`).
 
 ---
 
@@ -318,7 +329,7 @@ All warnings are treated as errors to enforce code quality from the start.
 ## Adding New Source Files
 
 1. Create your `.cpp` file in `src/` (e.g., `src/config.cpp`)
-2. Create the corresponding header in `include/` (e.g., `include/config.hpp`)
+2. Create the corresponding header in `include/my_project_name/` (e.g., `include/my_project_name/config.hpp`)
 3. Add the `.cpp` file to `src/CMakeLists.txt`:
 
 ```cmake
