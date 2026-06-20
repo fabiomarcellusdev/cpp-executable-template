@@ -19,10 +19,11 @@ else()
 endif()
 
 include(cmake/ConanSetup.cmake)
-include(cmake/LintTargets.cmake)
 include(cmake/CodeCoverage.cmake)
 include(cmake/Sanitizers.cmake)
 
 enable_testing()
 add_subdirectory(src)
 add_subdirectory(tests)
+
+include(cmake/LintTargets.cmake)
