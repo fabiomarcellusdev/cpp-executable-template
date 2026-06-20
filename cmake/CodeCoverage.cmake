@@ -23,12 +23,12 @@ if(ENABLE_COVERAGE)
             COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DIR}
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${LCOV_EXECUTABLE} --capture --directory . --output-file ${COVERAGE_DIR}/coverage.info
-                --ignore-errors mismatch
+                --ignore-errors mismatch,format,unsupported
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${LCOV_EXECUTABLE} --remove ${COVERAGE_DIR}/coverage.info
                 '/usr/*' '*/tests/*' '*/build/*' '*/external/*'
                 --output-file ${COVERAGE_DIR}/coverage_filtered.info
-                --ignore-errors unused
+                --ignore-errors unused,format,unsupported
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${GENHTML_EXECUTABLE} ${COVERAGE_DIR}/coverage_filtered.info
                 --output-directory ${COVERAGE_DIR}/html

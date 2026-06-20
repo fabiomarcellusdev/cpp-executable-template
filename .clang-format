@@ -14,7 +14,7 @@ IndentGotoLabels: true
 NamespaceIndentation: None
 AccessModifierOffset: -4
 
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: true
 AlignConsecutiveAssignments: None
 AlignConsecutiveDeclarations: None
 AlignConsecutiveMacros: None
@@ -84,6 +84,6 @@ FixNamespaceComments: true
 InsertNewlineAtEOF: true
 KeepEmptyLinesAtTheStartOfBlocks: false
 MaxEmptyLinesToKeep: 1
-ReflowComments: true
+ReflowComments: Always
 SortUsingDeclarations: LexicographicNumeric
 ...
