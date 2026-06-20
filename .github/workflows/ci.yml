@@ -50,6 +50,26 @@ jobs:
           CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
           CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
 
+      - name: Verify C++23 standard
+        run: |
+          echo "=== Compiler Information ==="
+          ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }} --version
+          echo ""
+          echo "=== Checking C++ standard in compile commands ==="
+          if [ -f "build/${{ matrix.preset }}/compile_commands.json" ]; then
+            # Extract and display C++ standard flags
+            grep -o '\-std=[^ "]*' "build/${{ matrix.preset }}/compile_commands.json" | sort -u || echo "No -std flag found"
+            # Verify C++23 is being used
+            if grep -q '\-std=c++2[3b]' "build/${{ matrix.preset }}/compile_commands.json"; then
+              echo "✓ C++23 standard verified"
+            else
+              echo "✗ C++23 standard NOT found in compile commands"
+              exit 1
+            fi
+          else
+            echo "Warning: compile_commands.json not found"
+          fi
+
       - name: Build
         run: |
           # Clean any stale coverage data to prevent gcov version mismatches
