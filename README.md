@@ -240,18 +240,55 @@ Reserved for self-contained, reusable components that are compiled as static lib
 The key distinction from `src/`: code in `src/` is application-specific (it knows about your CLI flags, your config format, your business rules), while code in `lib/` is generic and domain-agnostic.
 
 **What goes here:**
-- Each library lives in its own subdirectory with its own `CMakeLists.txt`, and is added via `add_subdirectory()` from the root
-- Examples of good candidates for `lib/`:
-  - `lib/logger/` — a lightweight logging utility with severity levels, sinks, and formatting, usable in any C++ project
-  - `lib/thread_pool/` — a generic thread pool implementation with task submission and future-based results
-  - `lib/arg_parser/` — a command-line argument parser that knows nothing about your specific application's flags
-  - `lib/signal_slot/` — a generic observer/signal-slot mechanism for decoupled event handling
-  - `lib/crc32/` — a CRC32 checksum implementation with no external dependencies
+
+Each library lives in its own subdirectory containing its own headers, source files, and `CMakeLists.txt`:
+
+```
+lib/
+└── logger/
+    ├── CMakeLists.txt          # Defines the static library target
+    ├── include/
+    │   └── logger/
+    │       └── logger.hpp      # Public header
+    └── src/
+        └── logger.cpp          # Implementation
+```
+
+The `CMakeLists.txt` inside `lib/logger/` defines the static library:
+
+```cmake
+add_library(logger STATIC src/logger.cpp)
+
+target_include_directories(logger PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+```
+
+Then in the root `CMakeLists.txt`, add the library subdirectory:
+
+```cmake
+add_subdirectory(lib/logger)
+```
+
+And in `src/CMakeLists.txt`, link it to the executable:
+
+```cmake
+target_link_libraries(${PROJECT_NAME} PRIVATE logger)
+```
+
+Examples of good candidates for `lib/`:
+- `lib/logger/` — a lightweight logging utility with severity levels, sinks, and formatting, usable in any C++ project
+- `lib/thread_pool/` — a generic thread pool implementation with task submission and future-based results
+- `lib/arg_parser/` — a command-line argument parser that knows nothing about your specific application's flags
+- `lib/signal_slot/` — a generic observer/signal-slot mechanism for decoupled event handling
+- `lib/crc32/` — a CRC32 checksum implementation with no external dependencies
 
 **What does NOT go here:**
 - Application-specific code like `config.cpp` or `app.cpp` — those belong in `src/` because they are tightly coupled to your project's domain
 - Third-party code downloaded from the internet — use `external/` for vendored code or Conan for managed dependencies
 - Header-only utilities — those belong in `include/` since they have no compiled component
+
+**If you never need `lib/`:** That's fine. Many projects don't. It's there as a convention for when you outgrow putting everything in `src/`.
 
 ---
 
