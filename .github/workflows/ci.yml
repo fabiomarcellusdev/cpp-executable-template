@@ -28,6 +28,19 @@ jobs:
       - name: Install Conan
         run: pipx install conan
 
+      - name: Install GCC 13 (Linux)
+        if: runner.os == 'Linux' && matrix.compiler == 'gcc'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 gcov-13
+          # Set as default gcc/g++/gcov
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+          sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-13 100
+          sudo update-alternatives --set gcc /usr/bin/gcc-13
+          sudo update-alternatives --set g++ /usr/bin/g++-13
+          sudo update-alternatives --set gcov /usr/bin/gcov-13
+
       - name: Install lcov (Linux)
         if: runner.os == 'Linux' && matrix.preset == 'debug-full'
         run: sudo apt-get install -y lcov
@@ -47,13 +60,13 @@ jobs:
       - name: Configure CMake
         run: cmake --preset ${{ matrix.preset }}
         env:
-          CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
-          CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+          CC: ${{ matrix.compiler == 'gcc' && (runner.os == 'Linux' && 'gcc-13' || 'gcc') || 'clang' }}
+          CXX: ${{ matrix.compiler == 'gcc' && (runner.os == 'Linux' && 'g++-13' || 'g++') || 'clang++' }}
 
       - name: Verify C++23 standard
         run: |
           echo "=== Compiler Information ==="
-          ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }} --version
+          ${{ matrix.compiler == 'gcc' && (runner.os == 'Linux' && 'g++-13' || 'g++') || 'clang++' }} --version
           echo ""
           echo "=== Checking C++ standard in compile commands ==="
           if [ -f "build/${{ matrix.preset }}/compile_commands.json" ]; then
