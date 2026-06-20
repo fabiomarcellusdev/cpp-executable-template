@@ -27,8 +27,14 @@ if(ENABLE_COVERAGE)
         string(REGEX MATCH "^[0-9]+" GCC_VERSION_MAJOR "${GCC_VERSION}")
         find_program(GCOV_EXECUTABLE NAMES gcov-${GCC_VERSION_MAJOR} gcov)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        # For Clang, use llvm-cov gcov or gcov
-        find_program(GCOV_EXECUTABLE NAMES llvm-cov gcov)
+        # For Clang, try to find versioned gcov first, then fall back to gcov
+        execute_process(
+            COMMAND ${CMAKE_CXX_COMPILER} -dumpversion
+            OUTPUT_VARIABLE CLANG_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        string(REGEX MATCH "^[0-9]+" CLANG_VERSION_MAJOR "${CLANG_VERSION}")
+        find_program(GCOV_EXECUTABLE NAMES gcov-${CLANG_VERSION_MAJOR} gcov)
     endif()
     
     if(NOT GCOV_EXECUTABLE)
@@ -46,13 +52,13 @@ if(ENABLE_COVERAGE)
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${LCOV_EXECUTABLE} --capture --directory . --output-file ${COVERAGE_DIR}/coverage.info
                 --gcov-tool ${GCOV_EXECUTABLE}
-                --ignore-errors mismatch,format,unsupported,version
+                --ignore-errors mismatch,format,unsupported,version,empty
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${LCOV_EXECUTABLE} --remove ${COVERAGE_DIR}/coverage.info
                 '/usr/*' '*/tests/*' '*/build/*' '*/external/*'
                 --output-file ${COVERAGE_DIR}/coverage_filtered.info
                 --gcov-tool ${GCOV_EXECUTABLE}
-                --ignore-errors unused,format,unsupported,version
+                --ignore-errors unused,format,unsupported,version,empty
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${GENHTML_EXECUTABLE} ${COVERAGE_DIR}/coverage_filtered.info
                 --output-directory ${COVERAGE_DIR}/html

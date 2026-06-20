@@ -51,7 +51,11 @@ jobs:
           CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
 
       - name: Build
-        run: cmake --build --preset ${{ matrix.preset }}
+        run: |
+          # Clean any stale coverage data to prevent gcov version mismatches
+          find build -name "*.gcda" -delete 2>/dev/null || true
+          find build -name "*.gcno" -delete 2>/dev/null || true
+          cmake --build --preset ${{ matrix.preset }}
 
       - name: Test
         run: ctest --preset ${{ matrix.preset }} --output-on-failure
