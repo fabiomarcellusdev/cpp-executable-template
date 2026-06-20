@@ -15,6 +15,28 @@ if(ENABLE_COVERAGE)
 
     find_program(LCOV_EXECUTABLE NAMES lcov)
     find_program(GENHTML_EXECUTABLE NAMES genhtml)
+    
+    # Find gcov that matches the compiler
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        # Extract GCC version and find matching gcov
+        execute_process(
+            COMMAND ${CMAKE_CXX_COMPILER} -dumpversion
+            OUTPUT_VARIABLE GCC_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        string(REGEX MATCH "^[0-9]+" GCC_VERSION_MAJOR "${GCC_VERSION}")
+        find_program(GCOV_EXECUTABLE NAMES gcov-${GCC_VERSION_MAJOR} gcov)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        # For Clang, use llvm-cov gcov or gcov
+        find_program(GCOV_EXECUTABLE NAMES llvm-cov gcov)
+    endif()
+    
+    if(NOT GCOV_EXECUTABLE)
+        message(WARNING "gcov not found. Coverage target will not be available.")
+        return()
+    endif()
+    
+    message(STATUS "Using gcov: ${GCOV_EXECUTABLE}")
 
     if(LCOV_EXECUTABLE AND GENHTML_EXECUTABLE)
         set(COVERAGE_DIR "${CMAKE_BINARY_DIR}/coverage")
@@ -23,11 +45,13 @@ if(ENABLE_COVERAGE)
             COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DIR}
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${LCOV_EXECUTABLE} --capture --directory . --output-file ${COVERAGE_DIR}/coverage.info
+                --gcov-tool ${GCOV_EXECUTABLE}
                 --ignore-errors mismatch,format,unsupported,version
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${LCOV_EXECUTABLE} --remove ${COVERAGE_DIR}/coverage.info
                 '/usr/*' '*/tests/*' '*/build/*' '*/external/*'
                 --output-file ${COVERAGE_DIR}/coverage_filtered.info
+                --gcov-tool ${GCOV_EXECUTABLE}
                 --ignore-errors unused,format,unsupported,version
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${GENHTML_EXECUTABLE} ${COVERAGE_DIR}/coverage_filtered.info
@@ -46,6 +70,7 @@ if(ENABLE_COVERAGE)
         add_custom_command(TARGET coverage PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${LCOV_EXECUTABLE} --zerocounters --directory .
+                --gcov-tool ${GCOV_EXECUTABLE}
             COMMENT "Resetting coverage counters..."
         )
     else()
