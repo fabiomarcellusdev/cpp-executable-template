@@ -19,6 +19,7 @@ else()
 endif()
 
 include(cmake/ConanSetup.cmake)
+include(cmake/LintTargets.cmake)
 
 enable_testing()
 add_subdirectory(src)

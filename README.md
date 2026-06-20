@@ -36,6 +36,7 @@ After creating your project, update the following to match your project:
 - `project()` name and description in `CMakeLists.txt`
 - `name` and `version` in `conanfile.py`
 - Target names in `src/CMakeLists.txt` and `tests/CMakeLists.txt`
+- Rename `include/my_project_name/` to your project name (e.g., `include/my_app/`)
 - This `README.md`
 
 ---
@@ -82,6 +83,8 @@ cpp-executable-template/
 ├── conanfile.py                # Conan 2.x package manager definition
 ├── README.md                   # This file
 ├── .gitignore                  # Git ignore rules
+├── .clang-format               # Code formatting rules
+├── .clang-tidy                 # Static analysis and naming convention rules
 │
 ├── src/                        # Application source code
 │   ├── CMakeLists.txt          # Executable target definition
@@ -97,7 +100,9 @@ cpp-executable-template/
 │   └── test_main.cpp           # Test entry point
 │
 ├── cmake/                      # Custom CMake modules
-│   └── ConanSetup.cmake        # Conan toolchain integration
+│   ├── ConanSetup.cmake        # Conan toolchain integration
+│   ├── LintTargets.cmake       # Formatting and linting CMake targets
+│   └── CheckPragmaOnce.cmake   # Enforces #pragma once in all headers
 │
 ├── scripts/                    # Build and utility scripts
 │
@@ -199,6 +204,8 @@ Contains CMake helper modules, custom `Find*.cmake` scripts, and toolchain integ
 
 **What goes here:**
 - `ConanSetup.cmake` — handles optional inclusion of the Conan-generated toolchain file
+- `LintTargets.cmake` — adds `format-check`, `format-fix`, `lint`, and `check-headers` CMake targets
+- `CheckPragmaOnce.cmake` — CMake script that verifies all headers contain `#pragma once`
 - Custom `Find<Package>.cmake` modules for dependencies not available through Conan
 - CMake utility scripts (e.g., code coverage setup, sanitizers configuration)
 
@@ -267,6 +274,7 @@ The root CMake configuration file. It:
 - Enables `compile_commands.json` export for tooling (clangd, IDEs)
 - Applies **strict compiler flags** (all warnings treated as errors)
 - Includes the Conan toolchain setup from `cmake/ConanSetup.cmake`
+- Includes the lint/format targets from `cmake/LintTargets.cmake`
 - Enables CTest and adds `src/` and `tests/` as subdirectories
 
 ### `conanfile.py`
@@ -290,6 +298,14 @@ def requirements(self):
 ### `.gitignore`
 
 Excludes build artifacts, IDE files, OS metadata, compiled binaries, and CMake-generated files from version control.
+
+### `.clang-format`
+
+Defines code formatting rules applied by `clang-format`. Key settings: 4-space indentation, attached braces (K&R style), 100-column limit, left-aligned pointers/references, regrouped and sorted includes (C headers first, then C++ standard library, then project headers), and C++23 standard. See the [Formatting & Linting](#formatting--linting) section for details.
+
+### `.clang-tidy`
+
+Defines static analysis checks run by `clang-tidy`. Enables checks for bug-prone patterns, C++ Core Guidelines, modernization, performance, and readability. Enforces naming conventions via `readability-identifier-naming` (see the naming conventions table in the Formatting & Linting section). See the [Formatting & Linting](#formatting--linting) section for details.
 
 ---
 
@@ -371,10 +387,83 @@ add_executable(${PROJECT_NAME}_tests test_main.cpp test_config.cpp)
 
 ---
 
+## Formatting & Linting
+
+This project enforces code quality through **clang-format** and **clang-tidy**, integrated directly into CMake.
+
+### Configuration Files
+
+- **`.clang-format`** — Defines code formatting rules: 4-space indentation, attached braces, 100-column limit, left-aligned pointers, regrouped and sorted includes, and more.
+- **`.clang-tidy`** — Defines static analysis checks: naming conventions, modernization suggestions, bug-prone patterns, performance issues, and C++ Core Guidelines compliance.
+
+### Naming Conventions
+
+Enforced by `.clang-tidy` via `readability-identifier-naming`:
+
+| Element | Convention | Example |
+|---|---|---|
+| Files | `snake_case` | `my_class.cpp`, `config_parser.hpp` |
+| Classes / Structs | `PascalCase` | `MyClass`, `AppConfig` |
+| Functions | `snake_case` | `calculate_total()`, `parse_input()` |
+| Variables | `snake_case` | `item_count`, `buffer_size` |
+| Parameters | `snake_case` | `max_retries`, `output_path` |
+| Class members | `snake_case` | `connection_count` |
+| Private/protected members | `snake_case_` | `is_valid_`, `cache_` |
+| Namespaces | `snake_case` | `my_project_name` |
+| Enums | `PascalCase` | `Color`, `LogLevel` |
+| Enum values | `PascalCase` | `Color::DarkBlue`, `LogLevel::Error` |
+| Constants / `constexpr` | `PascalCase` | `MaxBufferSize`, `DefaultTimeout` |
+| Macros | `UPPER_CASE` | `MY_PROJECT_VERSION`, `LOG_DEBUG` |
+| Type aliases | `PascalCase` | `StringMap`, `CallbackFn` |
+| Template parameters | `PascalCase` | `T`, `Allocator` |
+
+### Available CMake Targets
+
+| Target | Description |
+|---|---|
+| `format-check` | Checks formatting without modifying files (fails if any file is unformatted) |
+| `format-fix` | Auto-fixes formatting in all source and header files |
+| `lint` | Runs clang-tidy static analysis on all source files |
+| `check-headers` | Verifies all header files in `include/` contain `#pragma once` |
+
+### Usage
+
+```bash
+# Check formatting
+cmake --build build --target format-check
+
+# Auto-fix formatting
+cmake --build build --target format-fix
+
+# Run linter
+cmake --build build --target lint
+
+# Check headers for #pragma once
+cmake --build build --target check-headers
+```
+
+### Enforce During Build
+
+To make the build fail when formatting or linting issues are detected:
+
+```bash
+cmake --preset conan-release -DENABLE_LINTING=ON
+cmake --build --preset conan-release
+```
+
+When `ENABLE_LINTING` is enabled:
+- `clang-format --dry-run` runs before compilation (build fails if files are unformatted)
+- `clang-tidy` runs on every compilation unit (build fails on warnings)
+- `#pragma once` is verified for all headers before compilation
+
+---
+
 ## Prerequisites
 
 - **CMake** >= 3.27
 - **Conan** >= 2.0
+- **clang-format** >= 16
+- **clang-tidy** >= 16
 - A C++23-capable compiler:
   - GCC >= 13
   - Clang >= 16

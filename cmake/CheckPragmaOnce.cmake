@@ -1,0 +1,15 @@
+file(GLOB_RECURSE HEADERS "${HEADER_DIR}/*.hpp" "${HEADER_DIR}/*.h")
+
+set(FAILED FALSE)
+foreach(HEADER ${HEADERS})
+    file(READ "${HEADER}" CONTENT LIMIT 200)
+    string(FIND "${CONTENT}" "#pragma once" POS)
+    if(POS EQUAL -1)
+        message(WARNING "Missing #pragma once: ${HEADER}")
+        set(FAILED TRUE)
+    endif()
+endforeach()
+
+if(FAILED)
+    message(FATAL_ERROR "Some headers are missing #pragma once")
+endif()
