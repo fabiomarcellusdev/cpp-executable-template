@@ -4,6 +4,42 @@ A professional C++ executable project template using **CMake**, **Conan**, and *
 
 ---
 
+## Using This Template
+
+This repository is designed to be used as a GitHub template. There are several ways to create your own project from it:
+
+**GitHub Web UI:**
+1. Navigate to the repository page on GitHub
+2. Click the **"Use this template"** button (top-right, next to "Code")
+3. Choose **"Create a new repository"**
+4. Enter your new repository name, set visibility, and click **"Create repository"**
+
+**GitHub CLI:**
+
+```bash
+gh repo create my-project --template your-username/cpp-executable-template --public --clone
+cd my-project
+```
+
+**Manual clone (if you don't want template history):**
+
+```bash
+git clone https://github.com/your-username/cpp-executable-template.git my-project
+cd my-project
+rm -rf .git
+git init
+git add -A
+git commit -m "Initial commit"
+```
+
+After creating your project, update the following to match your project:
+- `project()` name and description in `CMakeLists.txt`
+- `name` and `version` in `conanfile.py`
+- Target names in `src/CMakeLists.txt` and `tests/CMakeLists.txt`
+- This `README.md`
+
+---
+
 ## Quick Start
 
 ```bash
@@ -22,6 +58,19 @@ cmake --build --preset conan-release
 # 5. Run tests
 ctest --preset conan-release
 ```
+
+### Build Output Location
+
+The `conanfile.py` uses Conan's `cmake_layout()`, which places all build artifacts inside a `build/` directory at the project root, organized by build configuration:
+
+```
+build/
+├── Release/        # Release build artifacts (executable, object files, etc.)
+├── Debug/          # Debug build artifacts
+└── RelWithDebInfo/ # RelWithDebInfo build artifacts (if configured)
+```
+
+The final executable is located at `build/<BuildType>/cpp_executable_template` (or `.exe` on Windows). The `build/` directory is gitignored and should never be committed.
 
 ---
 
