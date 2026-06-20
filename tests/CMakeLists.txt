@@ -1,17 +1,15 @@
-find_package(GTest QUIET)
+find_package(GTest REQUIRED)
 
-if(GTest_FOUND)
-    add_executable(${PROJECT_NAME}_tests test_main.cpp)
+add_executable(${PROJECT_NAME}_tests test_main.cpp)
 
-    target_include_directories(${PROJECT_NAME}_tests PRIVATE
-        ${CMAKE_SOURCE_DIR}/include
-    )
+target_include_directories(${PROJECT_NAME}_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+)
 
-    target_link_libraries(${PROJECT_NAME}_tests PRIVATE
-        GTest::gtest
-        GTest::gtest_main
-    )
+target_link_libraries(${PROJECT_NAME}_tests PRIVATE
+    GTest::gtest
+    GTest::gtest_main
+)
 
-    include(GoogleTest)
-    gtest_discover_tests(${PROJECT_NAME}_tests)
-endif()
+include(GoogleTest)
+gtest_discover_tests(${PROJECT_NAME}_tests)

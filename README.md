@@ -183,7 +183,7 @@ The key distinction from `src/`: code in `src/` is application-specific (it know
 
 ### `tests/` — Test Source Code
 
-Contains all unit and integration tests. The project uses **Google Test** (GTest) when available via Conan, and tests are automatically discovered by **CTest**.
+Contains all unit and integration tests. The project uses **Google Test** (GTest) as a required dependency managed by Conan, and tests are automatically discovered by **CTest**.
 
 **What goes here:**
 - Test source files (`test_*.cpp` or `*_test.cpp`)
