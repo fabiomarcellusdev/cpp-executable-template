@@ -144,6 +144,7 @@ cpp-executable-template/
 ├── conanfile.py                # Conan 2.x package manager definition
 ├── README.md                   # This file
 ├── LICENSE                     # MIT license
+├── SECURITY.md                 # Security policy for vulnerability reporting
 ├── .gitignore                  # Git ignore rules
 ├── .editorconfig               # Editor-agnostic formatting rules
 ├── .clang-format               # Code formatting rules
@@ -166,7 +167,9 @@ cpp-executable-template/
 ├── cmake/                      # Custom CMake modules
 │   ├── ConanSetup.cmake        # Conan toolchain integration
 │   ├── LintTargets.cmake       # Formatting and linting CMake targets
-│   └── CheckPragmaOnce.cmake   # Enforces #pragma once in all headers
+│   ├── CheckPragmaOnce.cmake   # Enforces #pragma once in all headers
+│   ├── CodeCoverage.cmake      # Code coverage reporting with lcov
+│   └── Sanitizers.cmake        # AddressSanitizer and UndefinedBehaviorSanitizer
 │
 ├── .github/                    # GitHub-specific configuration
 │   └── workflows/
@@ -274,6 +277,8 @@ Contains CMake helper modules, custom `Find*.cmake` scripts, and toolchain integ
 - `ConanSetup.cmake` — handles optional inclusion of the Conan-generated toolchain file
 - `LintTargets.cmake` — adds `format-check`, `format-fix`, `lint`, and `check-headers` CMake targets
 - `CheckPragmaOnce.cmake` — CMake script that verifies all headers contain `#pragma once`
+- `CodeCoverage.cmake` — adds `coverage` CMake target for generating HTML coverage reports with lcov
+- `Sanitizers.cmake` — enables AddressSanitizer and UndefinedBehaviorSanitizer via `-DENABLE_SANITIZERS=ON`
 - Custom `Find<Package>.cmake` modules for dependencies not available through Conan
 - CMake utility scripts (e.g., code coverage setup, sanitizers configuration)
 
@@ -343,6 +348,8 @@ The root CMake configuration file. It:
 - Applies **strict compiler flags** (all warnings treated as errors)
 - Includes the Conan toolchain setup from `cmake/ConanSetup.cmake`
 - Includes the lint/format targets from `cmake/LintTargets.cmake`
+- Includes code coverage support from `cmake/CodeCoverage.cmake`
+- Includes sanitizer support from `cmake/Sanitizers.cmake`
 - Enables CTest and adds `src/` and `tests/` as subdirectories
 
 ### `conanfile.py`
@@ -405,6 +412,10 @@ Hooks will then run automatically on every commit. To run manually on all files:
 ```bash
 pre-commit run --all-files
 ```
+
+### `SECURITY.md`
+
+Security policy for the repository. Defines how to report vulnerabilities, expected response times, disclosure policy, and security best practices for users of the template. Uses GitHub's private vulnerability reporting feature.
 
 ---
 
@@ -557,6 +568,84 @@ When `ENABLE_LINTING` is enabled:
 
 ---
 
+## Code Coverage
+
+Generate HTML coverage reports showing which lines of code are exercised by your tests.
+
+### Prerequisites
+
+- **lcov** (includes `genhtml`)
+  - Linux: `apt-get install lcov` or `dnf install lcov`
+  - macOS: `brew install lcov`
+
+### Usage
+
+```bash
+# 1. Configure with coverage enabled (use Debug for best results)
+conan install . --build=missing -s build_type=Debug
+cmake --preset conan-debug -DENABLE_COVERAGE=ON
+
+# 2. Build
+cmake --build --preset conan-debug
+
+# 3. Run tests to collect coverage data
+ctest --preset conan-debug
+
+# 4. Generate the HTML coverage report
+cmake --build build --target coverage
+```
+
+The coverage report is generated at `build/Debug/coverage/html/index.html`. Open it in a browser to view line-by-line coverage data.
+
+### What's excluded
+
+The coverage report automatically excludes:
+- System headers (`/usr/*`)
+- Test files (`*/tests/*`)
+- Build artifacts (`*/build/*`)
+- Vendored third-party code (`*/external/*`)
+
+---
+
+## Sanitizers
+
+Runtime error detection tools that catch bugs invisible during normal execution. Enabled via CMake option, supported on GCC and Clang only.
+
+### Available Sanitizers
+
+| Sanitizer | What it catches |
+|---|---|
+| **AddressSanitizer (ASan)** | Buffer overflows, use-after-free, double-free, memory leaks |
+| **UndefinedBehaviorSanitizer (UBSan)** | Integer overflow, null dereference, misaligned pointers, signed overflow |
+
+### Usage
+
+```bash
+# Configure with sanitizers enabled (use Debug for best results)
+conan install . --build=missing -s build_type=Debug
+cmake --preset conan-debug -DENABLE_SANITIZERS=ON
+
+# Build
+cmake --build --preset conan-debug
+
+# Run tests — sanitizers abort on first error detected
+ctest --preset conan-debug --output-on-failure
+```
+
+### Performance impact
+
+Sanitizers add ~2-3x slowdown and higher memory usage. Use only for development and testing builds, never for release.
+
+### Combining with other options
+
+Sanitizers can be combined with code coverage and linting:
+
+```bash
+cmake --preset conan-debug -DENABLE_SANITIZERS=ON -DENABLE_COVERAGE=ON -DENABLE_LINTING=ON
+```
+
+---
+
 ## Continuous Integration
 
 This project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that automatically builds and tests the project on every push and pull request.
@@ -588,6 +677,7 @@ Edit `.github/workflows/ci.yml` to:
 - **Conan** >= 2.0
 - **clang-format** >= 16
 - **clang-tidy** >= 16
+- **lcov** (optional, for code coverage reports)
 - **pre-commit** (optional, for git commit hooks)
 - A C++23-capable compiler:
   - GCC >= 13

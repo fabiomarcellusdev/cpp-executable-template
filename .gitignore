@@ -3,6 +3,12 @@ build/
 cmake-build-*/
 out/
 
+# Coverage reports
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
 # Conan
 conan_toolchain.cmake
 conanfile.lock
