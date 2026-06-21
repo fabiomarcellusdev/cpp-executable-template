@@ -14,7 +14,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         compiler: [gcc, clang]
-        preset: [release-strict, debug-full]
+        preset: [release-strict, debug-sanitizers]
         exclude:
           - os: macos-latest
             compiler: gcc
@@ -27,14 +27,6 @@ jobs:
 
       - name: Install Conan
         run: pipx install conan
-
-      - name: Install lcov (Linux)
-        if: runner.os == 'Linux' && matrix.preset == 'debug-full'
-        run: sudo apt-get install -y lcov
-
-      - name: Install lcov (macOS)
-        if: runner.os == 'macOS' && matrix.preset == 'debug-full'
-        run: brew install lcov
 
       - name: Configure Conan profile
         run: conan profile detect --force
@@ -71,23 +63,52 @@ jobs:
           fi
 
       - name: Build
-        run: |
-          # Clean any stale coverage data to prevent gcov version mismatches
-          find build -name "*.gcda" -delete 2>/dev/null || true
-          find build -name "*.gcno" -delete 2>/dev/null || true
-          cmake --build --preset ${{ matrix.preset }}
+        run: cmake --build --preset ${{ matrix.preset }}
 
       - name: Test
         run: ctest --preset ${{ matrix.preset }} --output-on-failure
 
+  coverage:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Conan
+        run: pipx install conan
+
+      - name: Install lcov
+        run: sudo apt-get install -y lcov
+
+      - name: Configure Conan profile
+        run: conan profile detect --force
+
+      - name: Install dependencies
+        run: conan install . --build=missing -s build_type=Debug -s compiler.cppstd=23
+
+      - name: Configure CMake
+        run: cmake --preset debug-coverage
+        env:
+          CC: clang
+          CXX: clang++
+
+      - name: Build
+        run: |
+          find build -name "*.gcda" -delete 2>/dev/null || true
+          find build -name "*.gcno" -delete 2>/dev/null || true
+          cmake --build --preset debug-coverage
+
+      - name: Test
+        run: ctest --preset debug-coverage --output-on-failure
+
       - name: Generate coverage report
-        if: matrix.preset == 'debug-full'
-        run: cmake --build --preset debug-full --target coverage
+        run: cmake --build --preset debug-coverage --target coverage
 
       - name: Upload coverage to Codecov
-        if: matrix.preset == 'debug-full' && matrix.compiler == 'clang' && runner.os == 'Linux'
         uses: codecov/codecov-action@v4
         with:
-          files: ./build/debug-full/coverage/coverage_filtered.info
+          files: ./build/debug-coverage/coverage/coverage_filtered.info
           fail_ci_if_error: true
           verbose: true
