@@ -27,14 +27,15 @@ if(ENABLE_COVERAGE)
         string(REGEX MATCH "^[0-9]+" GCC_VERSION_MAJOR "${GCC_VERSION}")
         find_program(GCOV_EXECUTABLE NAMES gcov-${GCC_VERSION_MAJOR} gcov)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        # For Clang, try to find versioned gcov first, then fall back to gcov
-        execute_process(
-            COMMAND ${CMAKE_CXX_COMPILER} -dumpversion
-            OUTPUT_VARIABLE CLANG_VERSION
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        string(REGEX MATCH "^[0-9]+" CLANG_VERSION_MAJOR "${CLANG_VERSION}")
-        find_program(GCOV_EXECUTABLE NAMES gcov-${CLANG_VERSION_MAJOR} gcov)
+        find_program(LLVM_COV_EXECUTABLE NAMES llvm-cov)
+        if(LLVM_COV_EXECUTABLE)
+            set(GCOV_EXECUTABLE_WRAPPER "${CMAKE_BINARY_DIR}/llvm-cov-gcov")
+            file(WRITE "${GCOV_EXECUTABLE_WRAPPER}" "#!/bin/sh\nexec ${LLVM_COV_EXECUTABLE} gcov \"$@\"\n")
+            execute_process(COMMAND chmod +x "${GCOV_EXECUTABLE_WRAPPER}")
+            set(GCOV_EXECUTABLE "${GCOV_EXECUTABLE_WRAPPER}")
+        else()
+            find_program(GCOV_EXECUTABLE NAMES gcov)
+        endif()
     endif()
     
     if(NOT GCOV_EXECUTABLE)
@@ -51,6 +52,7 @@ if(ENABLE_COVERAGE)
             COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DIR}
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${LCOV_EXECUTABLE} --capture --directory src --directory tests --output-file ${COVERAGE_DIR}/coverage.info
+                --base-directory ${CMAKE_SOURCE_DIR}
                 --gcov-tool ${GCOV_EXECUTABLE}
                 --ignore-errors mismatch,format,unsupported,version,empty
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
