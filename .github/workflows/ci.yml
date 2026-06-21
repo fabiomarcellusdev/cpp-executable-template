@@ -50,7 +50,7 @@ jobs:
           echo "=== Checking C++ standard in compile commands ==="
           if [ -f "build/${{ matrix.preset }}/compile_commands.json" ]; then
             # Extract and display C++ standard flags
-            grep -o '\-std=[^ "]*' "build/${{ matrix.preset }}/compile_commands.json" | sort -u || echo "No -std flag found"
+            grep -o '\-std=[^ " ]*' "build/${{ matrix.preset }}/compile_commands.json" | sort -u || echo "No -std flag found"
             # Verify C++23 is being used
             if grep -q '\-std=c++2[3b]' "build/${{ matrix.preset }}/compile_commands.json"; then
               echo "✓ C++23 standard verified"
@@ -91,8 +91,8 @@ jobs:
       - name: Configure CMake
         run: cmake --preset debug-coverage
         env:
-          CC: clang
-          CXX: clang++
+          CC: gcc
+          CXX: g++
 
       - name: Build
         run: |
