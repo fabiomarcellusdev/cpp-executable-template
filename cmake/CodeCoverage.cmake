@@ -64,6 +64,7 @@ if(ENABLE_COVERAGE)
                 --output-directory ${COVERAGE_DIR}/html
                 --title "${PROJECT_NAME} Code Coverage"
                 --legend --show-details
+                --ignore-errors empty
             COMMAND ${CMAKE_COMMAND} -E echo "Coverage report generated at: ${COVERAGE_DIR}/html/index.html"
             COMMAND ${CMAKE_COMMAND}
                 -DCOVERAGE_FILE=${COVERAGE_DIR}/coverage_filtered.info
@@ -73,12 +74,6 @@ if(ENABLE_COVERAGE)
             COMMENT "Generating code coverage report..."
         )
 
-        add_custom_command(TARGET coverage PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
-                ${LCOV_EXECUTABLE} --zerocounters --directory src --directory tests
-                --gcov-tool ${GCOV_EXECUTABLE}
-            COMMENT "Resetting coverage counters..."
-        )
     else()
         message(WARNING "lcov or genhtml not found. Coverage target will not be available.")
         message(STATUS "Install lcov: apt-get install lcov (Linux) or brew install lcov (macOS)")
