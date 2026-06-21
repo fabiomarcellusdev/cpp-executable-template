@@ -1,7 +1,7 @@
 ---
 Language: Cpp
 BasedOnStyle: LLVM
-Standard: c++23
+Standard: Auto
 
 IndentWidth: 4
 TabWidth: 4
@@ -14,7 +14,7 @@ IndentGotoLabels: true
 NamespaceIndentation: None
 AccessModifierOffset: -4
 
-AlignAfterOpenBracket: Align
+AlignAfterOpenBracket: true
 AlignConsecutiveAssignments: None
 AlignConsecutiveDeclarations: None
 AlignConsecutiveMacros: None

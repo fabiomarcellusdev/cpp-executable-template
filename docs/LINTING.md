@@ -42,7 +42,7 @@ cmake --build build --target format-check
 **Real example:**
 
 ```bash
-cmake --build build/Release --target format-check
+cmake --build build/release --target format-check
 ```
 
 **Expected output (clean):**
@@ -74,7 +74,7 @@ cmake --build build --target format-fix
 **Real example:**
 
 ```bash
-cmake --build build/Release --target format-fix
+cmake --build build/release --target format-fix
 ```
 
 **Expected output:**
@@ -124,7 +124,7 @@ cmake --build build --target lint
 **Real example:**
 
 ```bash
-cmake --build build/Release --target lint
+cmake --build build/release --target lint
 ```
 
 **Expected output (clean):**
@@ -154,8 +154,8 @@ Each warning includes:
 The lint target uses `compile_commands.json` from whichever build directory you specify:
 
 ```bash
-cmake --build build/Release --target lint   # uses build/Release/compile_commands.json
-cmake --build build/Debug --target lint     # uses build/Debug/compile_commands.json
+cmake --build build/release --target lint   # uses build/release/compile_commands.json
+cmake --build build/debug --target lint     # uses build/debug/compile_commands.json
 ```
 
 **Does lint run on both Release and Debug?**
@@ -168,16 +168,16 @@ No. You must specify which build directory to use. Lint analyzes source code str
 
 ```bash
 # Configure (generates compile_commands.json)
-cmake --preset conan-release
+cmake --preset release
 
 # Now lint works
-cmake --build build/Release --target lint
+cmake --build build/release --target lint
 ```
 
 ### Running clang-tidy Directly
 
 ```bash
-clang-tidy -p build/Release src/main.cpp
+clang-tidy -p build/release src/main.cpp
 ```
 
 The `-p` flag points to the directory containing `compile_commands.json`.
@@ -199,7 +199,7 @@ cmake --build build --target check-headers
 **Real example:**
 
 ```bash
-cmake --build build/Release --target check-headers
+cmake --build build/release --target check-headers
 ```
 
 **Expected output (clean):**
@@ -347,15 +347,15 @@ pre-commit autoupdate
 When enabled, the build fails if any formatting or linting issues are detected:
 
 ```bash
-cmake --preset conan-release -DENABLE_LINTING=ON
-cmake --build --preset conan-release
+cmake --preset release -DENABLE_LINTING=ON
+cmake --build --preset release
 ```
 
 **Real example:**
 
 ```bash
-cmake --preset conan-release -DENABLE_LINTING=ON
-cmake --build --preset conan-release
+cmake --preset release -DENABLE_LINTING=ON
+cmake --build --preset release
 ```
 
 **What happens when `ENABLE_LINTING=ON`:**
@@ -407,11 +407,11 @@ Enforced by `.clang-tidy` via `readability-identifier-naming`:
 2. **Save files** — your editor may auto-format on save if configured
 3. **Run format-fix** to ensure consistent formatting:
    ```bash
-   cmake --build build/Release --target format-fix
+   cmake --build build/release --target format-fix
    ```
 4. **Run lint** to catch issues early:
    ```bash
-   cmake --build build/Release --target lint
+   cmake --build build/release --target lint
    ```
 5. **Fix any warnings** reported by lint
 6. **Commit** — pre-commit hooks run clang-format as a safety net:
@@ -426,19 +426,19 @@ Run all checks to ensure CI will pass:
 
 ```bash
 # Format check
-cmake --build build/Release --target format-check
+cmake --build build/release --target format-check
 
 # Lint
-cmake --build build/Release --target lint
+cmake --build build/release --target lint
 
 # Header check
-cmake --build build/Release --target check-headers
+cmake --build build/release --target check-headers
 
 # Build
-cmake --build --preset conan-release
+cmake --build --preset release
 
 # Test
-ctest --preset conan-release
+ctest --preset release
 
 # Pre-commit on all files
 pre-commit run --all-files
@@ -449,9 +449,9 @@ pre-commit run --all-files
 In CI, enforce everything:
 
 ```bash
-cmake --preset conan-release -DENABLE_LINTING=ON
-cmake --build --preset conan-release
-ctest --preset conan-release --output-on-failure
+cmake --preset release -DENABLE_LINTING=ON
+cmake --build --preset release
+ctest --preset release --output-on-failure
 ```
 
 ---
@@ -499,7 +499,7 @@ clang-tidy --version
 **Solution:**
 
 ```bash
-cmake --preset conan-release
+cmake --preset release
 ```
 
 ### "pre-commit: command not found"
@@ -519,11 +519,11 @@ pre-commit install
 
 | Task | Command |
 |---|---|
-| Check formatting | `cmake --build build/Release --target format-check` |
-| Auto-fix formatting | `cmake --build build/Release --target format-fix` |
-| Run linter | `cmake --build build/Release --target lint` |
-| Check headers | `cmake --build build/Release --target check-headers` |
-| Enforce during build | `cmake --preset conan-release -DENABLE_LINTING=ON` |
+| Check formatting | `cmake --build build/release --target format-check` |
+| Auto-fix formatting | `cmake --build build/release --target format-fix` |
+| Run linter | `cmake --build build/release --target lint` |
+| Check headers | `cmake --build build/release --target check-headers` |
+| Enforce during build | `cmake --preset release -DENABLE_LINTING=ON` |
 | Install pre-commit | `pip install pre-commit && pre-commit install` |
 | Run all hooks | `pre-commit run --all-files` |
 
