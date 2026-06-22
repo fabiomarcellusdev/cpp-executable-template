@@ -14,4 +14,4 @@ target_link_libraries(${PROJECT_NAME}_tests PRIVATE
 )
 
 include(GoogleTest)
-gtest_discover_tests(${PROJECT_NAME}_tests)
+gtest_discover_tests(${PROJECT_NAME}_tests DISCOVERY_MODE PRE_TEST)
