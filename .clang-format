@@ -11,7 +11,7 @@ IndentCaseLabels: false
 IndentPPDirectives: None
 IndentWrappedFunctionNames: false
 IndentGotoLabels: true
-NamespaceIndentation: None
+NamespaceIndentation: All
 AccessModifierOffset: -4
 
 AlignAfterOpenBracket: true

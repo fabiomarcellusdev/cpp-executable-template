@@ -54,18 +54,19 @@ if(ENABLE_COVERAGE)
                 ${LCOV_EXECUTABLE} --capture --directory src --directory tests --output-file ${COVERAGE_DIR}/coverage.info
                 --base-directory ${CMAKE_SOURCE_DIR}
                 --gcov-tool ${GCOV_EXECUTABLE}
-                --ignore-errors mismatch,format,unsupported,version,empty
+                --ignore-errors mismatch,format,unsupported,version,empty,inconsistent
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${LCOV_EXECUTABLE} --remove ${COVERAGE_DIR}/coverage.info
-                '/usr/*' '*/tests/*' '*/build/*' '*/external/*'
+                '/usr/*' '*/tests/*' '*/build/*' '*/external/*' '*/gtest/*' '*/gmock/*'
                 --output-file ${COVERAGE_DIR}/coverage_filtered.info
                 --gcov-tool ${GCOV_EXECUTABLE}
-                --ignore-errors unused,format,unsupported,version,empty
+                --ignore-errors unused,format,unsupported,version,empty,inconsistent
             COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_BINARY_DIR}
                 ${GENHTML_EXECUTABLE} ${COVERAGE_DIR}/coverage_filtered.info
                 --output-directory ${COVERAGE_DIR}/html
                 --title "${PROJECT_NAME} Code Coverage"
                 --legend --show-details
+                --rc genhtml_med_limit=60 --rc genhtml_hi_limit=80
                 --ignore-errors empty
             COMMAND ${CMAKE_COMMAND} -E echo "Coverage report generated at: ${COVERAGE_DIR}/html/index.html"
             COMMAND ${CMAKE_COMMAND}

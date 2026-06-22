@@ -223,77 +223,83 @@ lcov: LCOV version 2.0
 
 ### Usage
 
-**Step 1: Configure with coverage enabled**
+**Step 1: Install dependencies**
 
-Use Debug build for accurate line-level coverage:
+Download and build Conan packages (GTest, fmt, etc.) for Debug configuration:
 
 ```bash
-conan install . --build=missing -s build_type=Debug
-cmake --preset debug -DENABLE_COVERAGE=ON
+conan install . --build=missing -s build_type=Debug -s compiler.cppstd=23
 ```
 
-**Real example:**
+**Step 2: Configure with coverage enabled**
+
+Read `CMakeLists.txt`, resolve dependencies, and generate build files in `build/debug-coverage/` with `--coverage` compiler flags. Does **not** compile anything:
 
 ```bash
-conan install . --build=missing -s build_type=Debug
-cmake --preset debug -DENABLE_COVERAGE=ON
+cmake --preset debug-coverage
 ```
 
 **Expected output:**
 
 ```
--- Code coverage enabled
+-- Code coverage enabled (threshold: 80%)
+-- Using gcov: /usr/bin/gcov-13
 -- Configuring done
 -- Generating done
 ```
 
-**Step 2: Build**
+**Step 3: Build**
+
+Invoke the compiler using the generated build files. Compiles `.cpp` files into object files and links them into executables (`cpp_executable_template` and `cpp_executable_template_tests`):
 
 ```bash
-cmake --build --preset debug
+cmake --build --preset debug-coverage
 ```
 
-**Step 3: Run tests**
+**Step 4: Run tests**
+
+Execute the test binary via CTest. This generates `.gcda` files containing execution counts for each instrumented line:
 
 ```bash
-ctest --preset debug
+ctest --preset debug-coverage --output-on-failure
 ```
 
-**Step 4: Generate the HTML coverage report**
+**Step 5: Generate the HTML coverage report**
+
+Run the `coverage` custom target, which:
+1. Captures coverage data from `.gcda` files using `lcov`
+2. Filters out system headers, tests, and build artifacts
+3. Generates an interactive HTML report using `genhtml`
+4. Checks coverage against the 80% threshold (fails if below)
 
 ```bash
-cmake --build build/debug --target coverage
-```
-
-**Real example:**
-
-```bash
-cmake --build build/debug --target coverage
+cmake --build --preset debug-coverage --target coverage
 ```
 
 **Expected output:**
 
 ```
 [1/1] Generating code coverage report...
-Resetting coverage counters...
-Capturing coverage data from .
+Capturing coverage data from src tests
 Found gcov version: 13.2.0
-Using 4 file(s)
 ...
 Overall coverage rate:
   lines......: 85.7% (42 of 49 lines)
   functions..: 100.0% (8 of 8 functions)
-Coverage report generated at: /path/to/build/debug/coverage/html/index.html
+Coverage report generated at: /path/to/build/debug-coverage/coverage/html/index.html
+-- Coverage: 42/49 lines (85%)
+-- Threshold: 80%
+-- Coverage check passed: 85% >= 80%
 ```
 
-**Step 5: Open the report**
+**Step 6: Open the report**
 
 ```bash
 # Linux
-xdg-open build/debug/coverage/html/index.html
+xdg-open build/debug-coverage/coverage/html/index.html
 
 # macOS
-open build/debug/coverage/html/index.html
+open build/debug-coverage/coverage/html/index.html
 ```
 
 The HTML report shows:
@@ -364,7 +370,7 @@ CMake Error: Code coverage 65% is below the required threshold of 80%. Please ad
 
 ```bash
 # Set threshold to 90%
-cmake --preset debug -DENABLE_COVERAGE=ON -DCOVERAGE_THRESHOLD=90
+cmake --preset debug-coverage -DCOVERAGE_THRESHOLD=90
 ```
 
 Or modify `CMakePresets.json` to set it permanently for a preset.
@@ -374,21 +380,24 @@ For Codecov integration and viewing coverage trends, see [Codecov Guide](CODECOV
 ### Typical Workflow
 
 ```bash
-# 1. Configure with coverage
-conan install . --build=missing -s build_type=Debug
-cmake --preset debug -DENABLE_COVERAGE=ON
+# 1. Install dependencies (downloads/builds Conan packages like GTest, fmt)
+conan install . --build=missing -s build_type=Debug -s compiler.cppstd=23
 
-# 2. Build
-cmake --build --preset debug
+# 2. Configure (reads CMakeLists.txt, generates build files with --coverage flags)
+cmake --preset debug-coverage
 
-# 3. Run tests
-ctest --preset debug
+# 3. Build (compiles .cpp files and links executables)
+cmake --build --preset debug-coverage
 
-# 4. Generate report
-cmake --build build/debug --target coverage
+# 4. Run tests (executes tests, generates .gcda coverage data files)
+ctest --preset debug-coverage --output-on-failure
 
-# 5. View report
-open build/debug/coverage/html/index.html
+# 5. Generate report (captures coverage, filters noise, creates HTML, enforces 80% threshold)
+cmake --build --preset debug-coverage --target coverage
+
+# 6. View report (opens interactive HTML in browser)
+xdg-open build/debug-coverage/coverage/html/index.html  # Linux
+open build/debug-coverage/coverage/html/index.html       # macOS
 ```
 
 ---
@@ -510,23 +519,20 @@ With UBSan:
 
 ### Combining with Other Options
 
-Sanitizers can be combined with code coverage and linting:
+Sanitizers can be combined with code coverage and linting using the `debug-full` preset:
 
 ```bash
-cmake --preset debug \
-    -DENABLE_SANITIZERS=ON \
-    -DENABLE_COVERAGE=ON \
-    -DENABLE_LINTING=ON
+cmake --preset debug-full
 ```
 
 **Real example:**
 
 ```bash
-conan install . --build=missing -s build_type=Debug
-cmake --preset debug -DENABLE_SANITIZERS=ON -DENABLE_COVERAGE=ON
-cmake --build --preset debug
-ctest --preset debug --output-on-failure
-cmake --build build/debug --target coverage
+conan install . --build=missing -s build_type=Debug -s compiler.cppstd=23
+cmake --preset debug-full
+cmake --build --preset debug-full
+ctest --preset debug-full --output-on-failure
+cmake --build --preset debug-full --target coverage
 ```
 
 This gives you:
@@ -575,33 +581,33 @@ ctest --preset debug --output-on-failure
 
 ```bash
 # Full check: lint + build + test + coverage + sanitizers
-conan install . --build=missing -s build_type=Debug
-cmake --preset debug -DENABLE_SANITIZERS=ON -DENABLE_COVERAGE=ON -DENABLE_LINTING=ON
-cmake --build --preset debug
-ctest --preset debug --output-on-failure
-cmake --build build/debug --target coverage
+conan install . --build=missing -s build_type=Debug -s compiler.cppstd=23
+cmake --preset debug-full
+cmake --build --preset debug-full
+ctest --preset debug-full --output-on-failure
+cmake --build --preset debug-full --target coverage
 
 # Also verify Release build works
-conan install . --build=missing
-cmake --preset release
-cmake --build --preset release
-ctest --preset release --output-on-failure
+conan install . --build=missing -s build_type=Release
+cmake --preset release-strict
+cmake --build --preset release-strict
+ctest --preset release-strict --output-on-failure
 ```
 
 ### CI/CD Pipeline
 
 ```bash
 # Debug with sanitizers
-conan install . --build=missing -s build_type=Debug
-cmake --preset debug -DENABLE_SANITIZERS=ON -DENABLE_LINTING=ON
-cmake --build --preset debug
-ctest --preset debug --output-on-failure
+conan install . --build=missing -s build_type=Debug -s compiler.cppstd=23
+cmake --preset debug-sanitizers
+cmake --build --preset debug-sanitizers
+ctest --preset debug-sanitizers --output-on-failure
 
 # Release
-conan install . --build=missing
-cmake --preset release
-cmake --build --preset release
-ctest --preset release --output-on-failure
+conan install . --build=missing -s build_type=Release
+cmake --preset release-strict
+cmake --build --preset release-strict
+ctest --preset release-strict --output-on-failure
 ```
 
 ---
@@ -622,6 +628,25 @@ sudo apt-get install lcov
 brew install lcov
 ```
 
+### "No rule to make target 'coverage'"
+
+**Cause:** `lcov` or `genhtml` is not installed, so the `coverage` target was not created during configure.
+
+**Solution:**
+
+```bash
+# Install lcov (includes genhtml)
+sudo apt-get install lcov   # Ubuntu/Debian
+brew install lcov            # macOS
+
+# Verify installation
+lcov --version
+
+# Re-configure and rebuild
+cmake --preset debug-coverage
+cmake --build --preset debug-coverage
+```
+
 ### "Coverage report is empty"
 
 **Cause:** Tests were not run before generating the report.
@@ -630,10 +655,10 @@ brew install lcov
 
 ```bash
 # Run tests first to collect coverage data
-ctest --preset debug
+ctest --preset debug-coverage --output-on-failure
 
 # Then generate report
-cmake --build build/debug --target coverage
+cmake --build --preset debug-coverage --target coverage
 ```
 
 ### "Sanitizer error: ASan runtime does not come first"
@@ -664,10 +689,10 @@ ctest --preset debug --output-on-failure
 |---|---|
 | Run tests | `ctest --preset release` |
 | Run tests (verbose) | `ctest --preset release --output-on-failure` |
-| Enable coverage | `cmake --preset debug -DENABLE_COVERAGE=ON` |
-| Generate coverage report | `cmake --build build/debug --target coverage` |
-| Enable sanitizers | `cmake --preset debug -DENABLE_SANITIZERS=ON` |
-| Combine all | `cmake --preset debug -DENABLE_COVERAGE=ON -DENABLE_SANITIZERS=ON -DENABLE_LINTING=ON` |
+| Enable coverage | `cmake --preset debug-coverage` |
+| Generate coverage report | `cmake --build --preset debug-coverage --target coverage` |
+| Enable sanitizers | `cmake --preset debug-sanitizers` |
+| Combine all | `cmake --preset debug-full` |
 
 For build configuration details, see [Build Guide](BUILD.md).
 For linting and formatting, see [Linting Guide](LINTING.md).

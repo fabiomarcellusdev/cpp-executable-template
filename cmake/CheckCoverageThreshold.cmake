@@ -21,15 +21,25 @@ file(READ "${COVERAGE_FILE}" COVERAGE_CONTENT)
 
 # Extract line coverage percentage
 # lcov format: LH:<lines hit> LF:<lines found>
-string(REGEX MATCH "LF:([0-9]+)" LF_MATCH "${COVERAGE_CONTENT}")
-string(REGEX MATCH "LH:([0-9]+)" LH_MATCH "${COVERAGE_CONTENT}")
+string(REGEX MATCHALL "LF:([0-9]+)" LF_ALL "${COVERAGE_CONTENT}")
+string(REGEX MATCHALL "LH:([0-9]+)" LH_ALL "${COVERAGE_CONTENT}")
 
-if(NOT LF_MATCH OR NOT LH_MATCH)
+if(NOT LF_ALL OR NOT LH_ALL)
     message(FATAL_ERROR "Could not parse coverage data from ${COVERAGE_FILE}")
 endif()
 
-string(REGEX REPLACE "LF:([0-9]+)" "\\1" LINES_FOUND "${LF_MATCH}")
-string(REGEX REPLACE "LH:([0-9]+)" "\\1" LINES_HIT "${LH_MATCH}")
+set(LINES_FOUND 0)
+set(LINES_HIT 0)
+
+foreach(LF_ENTRY IN LISTS LF_ALL)
+    string(REGEX REPLACE "LF:([0-9]+)" "\\1" VALUE "${LF_ENTRY}")
+    math(EXPR LINES_FOUND "${LINES_FOUND} + ${VALUE}")
+endforeach()
+
+foreach(LH_ENTRY IN LISTS LH_ALL)
+    string(REGEX REPLACE "LH:([0-9]+)" "\\1" VALUE "${LH_ENTRY}")
+    math(EXPR LINES_HIT "${LINES_HIT} + ${VALUE}")
+endforeach()
 
 if(LINES_FOUND EQUAL 0)
     message(FATAL_ERROR "No lines found in coverage data")
