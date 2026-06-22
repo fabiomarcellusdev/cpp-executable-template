@@ -33,16 +33,20 @@ All three are integrated into CMake as custom targets and can be run manually or
 
 ### Checking Formatting
 
-Checks if files comply with `.clang-format` without modifying them:
+Checks if files comply with `.clang-format` without modifying them.
+
+**Prerequisites:** Install `clang-format` first (see [Common Issues](#clang-format-not-found)).
 
 ```bash
-cmake --build build --target format-check
+cmake --preset debug-full
+cmake --build --preset debug-full --target format-check
 ```
 
 **Real example:**
 
 ```bash
-cmake --build build/release --target format-check
+cmake --preset debug-full
+cmake --build --preset debug-full --target format-check
 ```
 
 **Expected output (clean):**
@@ -65,16 +69,20 @@ The command exits with a non-zero status if any file is unformatted, making it s
 
 ### Auto-Fixing Formatting
 
-Applies formatting rules to all source and header files:
+Applies formatting rules to all source and header files.
+
+**Prerequisites:** Install `clang-format` first (see [Common Issues](#clang-format-not-found)).
 
 ```bash
-cmake --build build --target format-fix
+cmake --preset debug-full
+cmake --build --preset debug-full --target format-fix
 ```
 
 **Real example:**
 
 ```bash
-cmake --build build/release --target format-fix
+cmake --preset debug-full
+cmake --build --preset debug-full --target format-fix
 ```
 
 **Expected output:**
@@ -117,14 +125,18 @@ clang-format -i src/*.cpp include/**/*.hpp tests/*.cpp
 
 ### Running the Linter
 
+**Prerequisites:** Install `clang-tidy` first (see [Common Issues](#clang-tidy-not-found)).
+
 ```bash
-cmake --build build --target lint
+cmake --preset debug-full
+cmake --build --preset debug-full --target lint
 ```
 
 **Real example:**
 
 ```bash
-cmake --build build/release --target lint
+cmake --preset debug-full
+cmake --build --preset debug-full --target lint
 ```
 
 **Expected output (clean):**
@@ -192,14 +204,18 @@ Verifies that every header file in `include/` contains `#pragma once` at the top
 
 ### Running the Check
 
+**Prerequisites:** Configure the project first with `cmake --preset debug-full` (or any preset).
+
 ```bash
-cmake --build build --target check-headers
+cmake --preset debug-full
+cmake --build --preset debug-full --target check-headers
 ```
 
 **Real example:**
 
 ```bash
-cmake --build build/release --target check-headers
+cmake --preset debug-full
+cmake --build --preset debug-full --target check-headers
 ```
 
 **Expected output (clean):**
@@ -405,16 +421,20 @@ Enforced by `.clang-tidy` via `readability-identifier-naming`:
 
 1. **Write code** in your editor/IDE
 2. **Save files** — your editor may auto-format on save if configured
-3. **Run format-fix** to ensure consistent formatting:
+3. **Configure once** (generates build files and finds clang-format/clang-tidy):
    ```bash
-   cmake --build build/release --target format-fix
+   cmake --preset debug-full
    ```
-4. **Run lint** to catch issues early:
+4. **Run format-fix** to ensure consistent formatting:
    ```bash
-   cmake --build build/release --target lint
+   cmake --build --preset debug-full --target format-fix
    ```
-5. **Fix any warnings** reported by lint
-6. **Commit** — pre-commit hooks run clang-format as a safety net:
+5. **Run lint** to catch issues early:
+   ```bash
+   cmake --build --preset debug-full --target lint
+   ```
+6. **Fix any warnings** reported by lint
+7. **Commit** — pre-commit hooks run clang-format as a safety net:
    ```bash
    git add .
    git commit -m "Add feature"
@@ -425,20 +445,23 @@ Enforced by `.clang-tidy` via `readability-identifier-naming`:
 Run all checks to ensure CI will pass:
 
 ```bash
+# Configure first (required for all lint targets)
+cmake --preset debug-full
+
 # Format check
-cmake --build build/release --target format-check
+cmake --build --preset debug-full --target format-check
 
 # Lint
-cmake --build build/release --target lint
+cmake --build --preset debug-full --target lint
 
 # Header check
-cmake --build build/release --target check-headers
+cmake --build --preset debug-full --target check-headers
 
 # Build
-cmake --build --preset release
+cmake --build --preset debug-full
 
 # Test
-ctest --preset release
+ctest --preset debug-full --output-on-failure
 
 # Pre-commit on all files
 pre-commit run --all-files
@@ -519,11 +542,12 @@ pre-commit install
 
 | Task | Command |
 |---|---|
-| Check formatting | `cmake --build build/release --target format-check` |
-| Auto-fix formatting | `cmake --build build/release --target format-fix` |
-| Run linter | `cmake --build build/release --target lint` |
-| Check headers | `cmake --build build/release --target check-headers` |
-| Enforce during build | `cmake --preset release -DENABLE_LINTING=ON` |
+| Configure (required first) | `cmake --preset debug-full` |
+| Check formatting | `cmake --build --preset debug-full --target format-check` |
+| Auto-fix formatting | `cmake --build --preset debug-full --target format-fix` |
+| Run linter | `cmake --build --preset debug-full --target lint` |
+| Check headers | `cmake --build --preset debug-full --target check-headers` |
+| Enforce during build | `cmake --preset debug-full` (linting enabled by default) |
 | Install pre-commit | `pip install pre-commit && pre-commit install` |
 | Run all hooks | `pre-commit run --all-files` |
 

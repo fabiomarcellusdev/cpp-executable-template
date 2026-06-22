@@ -8,4 +8,4 @@ namespace my_project_name {
         return "Hello, World!";
     }
 
-}
+} // namespace my_project_name
