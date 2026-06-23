@@ -38,6 +38,18 @@ Example: `conan-ubuntu-latest-gcc-release-strict-<hash>`
 - **Scope:** Repository and branch (main branch caches are available to PRs)
 - **Invalidation:** Automatic when `conanfile.txt` or `conanfile.py` changes
 
+### Why CC/CXX Must Be Passed to Conan
+
+The cache key includes the compiler (gcc/clang), so Conan must actually use that compiler when building packages. Without setting `CC` and `CXX`:
+
+- Conan detects the system default compiler (usually gcc on Ubuntu)
+- Both gcc and clang cache keys end up storing identical gcc-built packages
+- You waste cache storage and risk compiler mismatches
+
+By setting `CC`/`CXX` for Conan steps, each cache key contains packages built with the correct compiler, keeping the cache segmentation accurate and meaningful.
+
+See [CI Compiler Configuration](CI.md) for details on CC/CXX.
+
 ---
 
 ## Cache Hit Scenarios
