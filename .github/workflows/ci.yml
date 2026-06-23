@@ -36,11 +36,17 @@ jobs:
 
       - name: Configure Conan profile
         run: conan profile detect --force
+        env:
+          CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
+          CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
 
       - name: Install dependencies
         run: |
           BUILD_TYPE=$(echo "${{ matrix.preset }}" | grep -q "release" && echo "Release" || echo "Debug")
           conan install . --build=missing -s build_type=$BUILD_TYPE -s compiler.cppstd=23
+        env:
+          CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
+          CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
 
       - name: Configure CMake
         run: cmake --preset ${{ matrix.preset }}
